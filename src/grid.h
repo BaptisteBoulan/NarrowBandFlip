@@ -16,6 +16,10 @@ public:
     std::vector<float> uMasses; // horizontal masses
     std::vector<float> vMasses; // vertical masses
 
+    std::vector<glm::vec2> interpolatedVelocities; // Interpolated velocities in the middle of each cell for debug purpose
+
+    std::vector<bool> solidCells;
+
 
     Grid(int size) : size(size) {
         total_size = size * size;
@@ -28,6 +32,8 @@ public:
         new_vs.resize(total_size + size, 0.0f);
         uMasses.resize(total_size + size, 0.0f);
         vMasses.resize(total_size + size, 0.0f);
+        interpolatedVelocities.resize(total_size, glm::vec2(0.0f));
+        solidCells.resize(total_size, false);
     }
     
     int gridIdx(int x, int y) const { return y * size + x; }

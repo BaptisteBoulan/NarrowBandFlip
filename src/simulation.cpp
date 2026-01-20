@@ -4,12 +4,18 @@
 // === MAIN STEPS ===
 
 void Simulation::p2g() {
-    // RESET GRIDS
-    grid.us = grid.new_us;
-    grid.vs = grid.new_vs;
 
-    grid.new_us.assign(size * (size + 1), 0.0f);
-    grid.new_vs.assign((size + 1) * size, 0.0f); 
+    // DEBUG
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            grid.interpolatedVelocities[grid.gridIdx(i,j)].x = 0.5f * (grid.new_us[grid.uIdx(i,j)]+grid.new_us[grid.uIdx(i+1,j)]);
+            grid.interpolatedVelocities[grid.gridIdx(i,j)].y = 0.5f * (grid.new_vs[grid.vIdx(i,j)]+grid.new_vs[grid.vIdx(i,j+1)]);
+        }
+    }
+
+    // RESET GRIDS
+    grid.us.assign(size * (size + 1), 0.0f);
+    grid.vs.assign((size + 1) * size, 0.0f); 
 
     grid.uMasses.assign(size * (size + 1), 0.0f);
     grid.vMasses.assign((size + 1) * size, 0.0f);
@@ -38,7 +44,8 @@ void Simulation::p2g() {
         // Transfer U
         int u_indices[4] = { grid.uIdx(ui, uj), grid.uIdx(ui+1, uj), grid.uIdx(ui, uj+1), grid.uIdx(ui+1, uj+1) };
         for(int k=0; k<4; ++k) {
-            grid.new_us[u_indices[k]] += weights_u[k] * p.vel.x;
+            if (u_indices[k] < 0 || u_indices[k] >= grid.total_size) continue;
+            grid.us[u_indices[k]] += weights_u[k] * p.vel.x;
             grid.uMasses[u_indices[k]] += weights_u[k];
         }
 
@@ -62,109 +69,125 @@ void Simulation::p2g() {
         // Transfer V
         int v_indices[4] = { grid.vIdx(vi, vj), grid.vIdx(vi+1, vj), grid.vIdx(vi, vj+1), grid.vIdx(vi+1, vj+1) };
         for(int k=0; k<4; ++k) {
-            grid.new_vs[v_indices[k]] += weights_v[k] * p.vel.y;
+            if (v_indices[k] < 0 || v_indices[k] >= grid.total_size) continue;
+            grid.vs[v_indices[k]] += weights_v[k] * p.vel.y;
             grid.vMasses[v_indices[k]] += weights_v[k];
         }
+
     }
 
     // Normalize
-    for (int k = 0; k < grid.new_us.size(); k++) {
-        if (grid.uMasses[k] > 1e-9f) grid.new_us[k] /= grid.uMasses[k];
+    for (int k = 0; k < grid.us.size(); k++) {
+        if (grid.uMasses[k] > 1e-9f) grid.us[k] /= grid.uMasses[k];
     }
-    for (int k = 0; k < grid.new_vs.size(); k++) {
-        if (grid.vMasses[k] > 1e-9f) grid.new_vs[k] /= grid.vMasses[k];
+    for (int k = 0; k < grid.vs.size(); k++) {
+        if (grid.vMasses[k] > 1e-9f) grid.vs[k] /= grid.vMasses[k];
     }
 }
 
 void Simulation::applyGravity(float dt) {
     for (int k = 0; k < (size+1)*size; k++) {
-        grid.new_vs[k] += GRAVITY * dt;
+        grid.new_vs[k] = grid.vs[k] + GRAVITY * dt;
+        grid.new_us[k] = grid.us[k];
     }
 }
 
 void Simulation::computeDivergences(float dt) {
-    for (int k = 0; k < size; k++) {
-        grid.new_us[grid.uIdx(0,k)] = 0;
-        grid.new_us[grid.uIdx(size,k)] = 0;
-
-        grid.new_vs[grid.vIdx(k,0)] = 0;
-        grid.new_vs[grid.vIdx(k,size)] = 0;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (grid.solidCells[grid.gridIdx(i, j)]) {
+                // If a face borders a solid cell, the velocity is forced to 0
+                grid.new_us[grid.uIdx(i + 1, j)] = 0.0f;
+                grid.new_us[grid.uIdx(i, j)] = 0.0f;
+                grid.new_vs[grid.vIdx(i, j + 1)] = 0.0f;
+                grid.new_vs[grid.vIdx(i, j)] = 0.0f;
+            }
+        }
     }
+    
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (grid.solidCells[grid.gridIdx(i, j)]) {
+                grid.divergence[grid.gridIdx(i, j)] = 0;
+                continue;
+            }
 
-    for (int i = 1; i < size-1; i++) {
-        for (int j = 1; j < size-1; j++) {
-            float div = 0.0f;
+            float u_right = grid.new_us[grid.uIdx(i + 1, j)];
+            float u_left  = grid.new_us[grid.uIdx(i, j)];
+            float v_top   = grid.new_vs[grid.vIdx(i, j + 1)];
+            float v_bot   = grid.new_vs[grid.vIdx(i, j)];
 
-            div += grid.new_us[grid.uIdx(i + 1, j)];
-            div -= grid.new_us[grid.uIdx(i, j)];
-
-            div += grid.new_vs[grid.vIdx(i, j + 1)];
-            div -= grid.new_vs[grid.vIdx(i, j)];
-
-            grid.divergence[grid.gridIdx(i, j)] = div/ h * RHO / dt;
+            float div = (u_right - u_left) + (v_top - v_bot);
+            grid.divergence[grid.gridIdx(i, j)] = (div / h) * (RHO / dt);
         }
     }
 }
 
 void Simulation::computePressures(float dt) {
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
+    for (int i = 1; i < size - 1; i++) {
+        for (int j = 1; j < size - 1; j++) {
+            if (grid.solidCells[grid.gridIdx(i, j)]) continue; // Skip solid cells
 
-            int activeFaces = 0;
             float sumPressures = 0.0f;
+            int fluidNeighbors = 0;
+
+            int neighbors[4][2] = {{i+1, j}, {i-1, j}, {i, j+1}, {i, j-1}};
             
-
-            // RIGHT
-            if (i < size - 1) {
-                sumPressures += grid.pressure[grid.gridIdx(i+1,j)];
-                activeFaces++;
-            }
-            // LEFT
-            if (i > 0) {
-                sumPressures += grid.pressure[grid.gridIdx(i-1,j)];
-                activeFaces++;
+            for (auto& n : neighbors) {
+                int ni = n[0];
+                int nj = n[1];
+                if (!grid.solidCells[grid.gridIdx(ni, nj)]) {
+                    sumPressures += grid.pressure[grid.gridIdx(ni, nj)];
+                    fluidNeighbors++;
+                }
             }
 
-            // TOP
-            if (j < size - 1) {
-                sumPressures += grid.pressure[grid.gridIdx(i,j+1)];
-                activeFaces++;
+            if (fluidNeighbors > 0) {
+                int idx = grid.gridIdx(i, j);
+                grid.pressure[idx] = (sumPressures - (h * h * grid.divergence[idx])) / fluidNeighbors;
             }
-            // BOTTOM
-            if (j > 0) {
-                sumPressures += grid.pressure[grid.gridIdx(i,j-1)];
-                activeFaces++;
-            }
-
-            int idx = grid.gridIdx(i,j);
-
-            grid.pressure[idx] = (sumPressures - h*h*grid.divergence[idx]) / activeFaces;
-
         }
     }
 }
 
 void Simulation::solvePressure(float dt) {
+    for (int k = 0; k < grid.total_size; k++) grid.pressure[k] = 0;
+
     // Pressure solving iterations
-    for (int k = 0; k < 30; k++) {
+    for (int k = 0; k < 100; k++) {
         computePressures(dt);
     }
+    computeR();
+
+    
 }
 
 void Simulation::applyPressure(float dt) {
     float K = dt / RHO / h;
 
+    // U VELOCITIES
     for (int i = 1; i < size; i++) {
-        for (int j = 0; j < size; j ++) {
-            grid.new_us[grid.uIdx(i,j)] -= K*(grid.pressure[grid.gridIdx(i,j)] - grid.pressure[grid.gridIdx(i-1,j)]);
+        for (int j = 1; j < size - 1; j++) {
+            if (!grid.solidCells[grid.gridIdx(i, j)] && !grid.solidCells[grid.gridIdx(i - 1, j)]) {
+                grid.new_us[grid.uIdx(i, j)] -= K * (grid.pressure[grid.gridIdx(i, j)] - grid.pressure[grid.gridIdx(i - 1, j)]);
+            } else {
+                grid.new_us[grid.uIdx(i, j)] = 0.0f; // Solid boundary
+            }
         }
     }
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 1; j < size; j ++) {
-            grid.new_vs[grid.vIdx(i,j)] -= K*(grid.pressure[grid.gridIdx(i,j)] - grid.pressure[grid.gridIdx(i,j-1)]);
+    // V VELOCITIES
+    for (int i = 1; i < size - 1; i++) {
+        for (int j = 1; j < size; j++) {
+            if (!grid.solidCells[grid.gridIdx(i, j)] && !grid.solidCells[grid.gridIdx(i, j-1)]) {
+                grid.new_vs[grid.vIdx(i, j)] -= K * (grid.pressure[grid.gridIdx(i, j)] - grid.pressure[grid.gridIdx(i, j-1)]);
+            } else {
+                grid.new_vs[grid.vIdx(i, j)] = 0.0f; // Solid boundary
+            }
         }
     }
+
+    computeDivergences(dt); // just to debug
 }
 
 void Simulation::g2p(float dt) {
@@ -193,12 +216,12 @@ void Simulation::g2p(float dt) {
             uwx * uwy              // (i+1, j+1)
         };
         int u_indices[4] = { grid.uIdx(ui, uj), grid.uIdx(ui+1, uj), grid.uIdx(ui, uj+1), grid.uIdx(ui+1, uj+1) };
-        
         // Transfer U
         float pic_u = 0.0f;
         float flip_u = p.vel.x;
         
         for(int k=0; k<4; ++k) {
+            if (u_indices[k] < 0 || u_indices[k] >= grid.total_size) continue;
             float new_u = grid.new_us[u_indices[k]];
             float old_u = grid.us[u_indices[k]];
 
@@ -229,6 +252,7 @@ void Simulation::g2p(float dt) {
         float flip_v = p.vel.y;
         
         for(int k=0; k<4; ++k) {
+            if (v_indices[k] < 0 || v_indices[k] >= grid.total_size) continue;
             float new_v = grid.new_vs[v_indices[k]];
             float old_v = grid.vs[v_indices[k]];
 
@@ -238,73 +262,57 @@ void Simulation::g2p(float dt) {
 
         p.vel.x = (1.0f - alpha) * pic_u + alpha * flip_u;
         p.vel.y = (1.0f - alpha) * pic_v + alpha * flip_v;
-    }
-}
 
+        p.pos += p.vel * dt;
 
-void Simulation::advectParticles(float dt) {
-    for (auto& p : particles) {
-        glm::vec2 v1 = sampleVelocityFromGrid(p.pos);
-        
-        glm::vec2 midPos = p.pos + v1 * (dt * 0.5f);
-        
-        glm::vec2 v2 = sampleVelocityFromGrid(midPos);
-        
-        p.pos += v2 * dt;
+        // Collision
+        int cellX = (int)(p.pos.x * size);
+        int cellY = (int)(p.pos.y * size);
 
-        // Boundaries
-        if (p.pos.x <= h) {
-            p.pos.x = h+0.01f;
-            p.vel.x *= -0.8f;
-        }
-        if (p.pos.x >= 1-h) {
-            p.pos.x = 0.999f-h;
-            p.vel.x *= -0.8f;
-        }
+        cellX = std::max(0, std::min(size - 1, cellX));
+        cellY = std::max(0, std::min(size - 1, cellY));
 
-        if (p.pos.y <= h) {
-            p.pos.y = h+0.01f;
-            p.vel.y *= -0.8f;
-        }
-        if (p.pos.y >= 1-h) {
-            p.pos.y = 0.999f-h;
-            p.vel.y *= -0.8f;
+        if (grid.solidCells[grid.gridIdx(cellX, cellY)]) {
+            float fluidX = (float)cellX / size;
+            float fluidY = (float)cellY / size;
+
+            if (cellX == 0) { p.pos.x = h + 0.001f; p.vel.x = 0; }
+            if (cellX == size - 1) { p.pos.x = 1.0f - h - 0.001f; p.vel.x = 0; }
+            if (cellY == 0) { p.pos.y = h + 0.001f; p.vel.y = 0; }
+            if (cellY == size - 1) { p.pos.y = 1.0f - h - 0.001f; p.vel.y = 0; }
         }
     }
 }
 
+void Simulation::computeR() {
+    double sumSquaredResiduals = 0.0;
+    int activeCells = 0;
 
-// === HELPERS ===
+    for (int i = 1; i < size - 1; i++) {
+        for (int j = 1; j < size - 1; j++) {
+            if (grid.solidCells[grid.gridIdx(i, j)]) continue;
 
-float Simulation::interpolate(float x, float y, const std::vector<float>& gridValues, bool isU) {
-    int i = (int)std::floor(x);
-    int j = (int)std::floor(y);
-    
-    i = std::max(0, std::min(i, (isU ? size : size - 1)));
-    j = std::max(0, std::min(j, (isU ? size - 1 : size)));
+            float p_ij = grid.pressure[grid.gridIdx(i, j)];
+            float sumPNeighbors = 0.0f;
+            int fluidNeighbors = 0;
 
-    float wx = x - i;
-    float wy = y - j;
+            int neighbors[4][2] = {{i+1, j}, {i-1, j}, {i, j+1}, {i, j-1}};
+            for (auto& n : neighbors) {
+                if (!grid.solidCells[grid.gridIdx(n[0], n[1])]) {
+                    sumPNeighbors += grid.pressure[grid.gridIdx(n[0], n[1])];
+                    fluidNeighbors++;
+                }
+            }
 
-    float v00 = gridValues[isU ? grid.uIdx(i, j) : grid.vIdx(i, j)];
-    float v10 = gridValues[isU ? grid.uIdx(i+1, j) : grid.vIdx(i+1, j)];
-    float v01 = gridValues[isU ? grid.uIdx(i, j+1) : grid.vIdx(i, j+1)];
-    float v11 = gridValues[isU ? grid.uIdx(i+1, j+1) : grid.vIdx(i+1, j+1)];
-
-    return (1-wx)*(1-wy)*v00 + wx*(1-wy)*v10 + (1-wx)*wy*v01 + wx*wy*v11;
-}
-
-glm::vec2 Simulation::sampleVelocityFromGrid(glm::vec2 pos) {
-    float px = pos.x * size;
-    float py = pos.y * size;
-
-    float ux = px;
-    float uy = py - 0.5f;
-    float u = interpolate(ux, uy, grid.new_us, true); 
-
-    float vx = px - 0.5f;
-    float vy = py;
-    float v = interpolate(vx, vy, grid.new_vs, false);
-
-    return glm::vec2(u, v);
+            if (fluidNeighbors > 0) {
+                float targetP = (sumPNeighbors - (h * h * grid.divergence[grid.gridIdx(i, j)])) / fluidNeighbors;
+                float localResidual = targetP - p_ij; 
+                
+                sumSquaredResiduals += localResidual * localResidual;
+                activeCells++;
+            }
+        }
+    }
+    double residualNorm = std::sqrt(sumSquaredResiduals / (activeCells > 0 ? activeCells : 1));
+    std::cout << "Residual Norm (Jacobi Delta): " << residualNorm << std::endl;
 }
