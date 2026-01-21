@@ -1,8 +1,8 @@
 #include "Simulation.h"
 #include "shader.h"
 
-enum class RenderMode { PRESSURE, DIVERGENCE };
-RenderMode currentMode = RenderMode::PRESSURE;
+enum class RenderMode { PRESSURE, DIVERGENCE, NONE };
+RenderMode currentMode = RenderMode::NONE;
 
 // Global State
 int simRes = 32;
@@ -109,22 +109,24 @@ void render() {
         float dt = currentTime - lastTime;
         lastTime = currentTime;
         
-        if (!paused) sim.update(0.1f);
+        if (!paused) sim.update(dt);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
         // TEXTURE DISPLAY
-        glUseProgram(gridShader);
-        const std::vector<float>& gridData = (currentMode == RenderMode::PRESSURE) ? sim.grid.pressure : sim.grid.divergence;
+        if (currentMode != RenderMode::NONE) {
+            glUseProgram(gridShader);
+            const std::vector<float>& gridData = (currentMode == RenderMode::PRESSURE) ? sim.grid.pressure : sim.grid.divergence;
 
-        float multiplier = (currentMode == RenderMode::PRESSURE) ? 0.5f : -0.01f;
-        glUniform1f(multiplierLocation, multiplier);
+            float multiplier = (currentMode == RenderMode::PRESSURE) ? 0.5f : -0.01f;
+            glUniform1f(multiplierLocation, multiplier);
 
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, sim.grid.size, sim.grid.size, 0, GL_RED, GL_FLOAT, gridData.data());
-        
-        glBindVertexArray(gridVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindTexture(GL_TEXTURE_2D, textureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, sim.grid.size, sim.grid.size, 0, GL_RED, GL_FLOAT, gridData.data());
+            
+            glBindVertexArray(gridVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
         // VELOCITY DISPLAY
         std::vector<glm::vec2> velocityLines;
@@ -161,7 +163,6 @@ void render() {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-        glfwSwapInterval(1);
     }
 }
 

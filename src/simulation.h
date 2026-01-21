@@ -23,9 +23,15 @@ public:
         }
 
         // Init particles
-        for(float x = 0.6f; x < 0.9f; x += 0.03f) {
-            for (float y = 0.05f; y < 0.9f; y += 0.03f) {
-                particles.emplace_back(glm::vec2(x,y));
+        for(float x = 0.2f; x < 0.8f; x += 0.01f) {
+            for (float y = 0.2f; y < 0.8f; y += 0.01f) {
+
+                float theta = (abs(x-0.5f)<1e-3) ? (float)M_PI/2.0f : (float)atan((y-0.5f)/(x-0.5f));
+                if (x<0.5f) theta += (float)M_PI;
+
+                particles.emplace_back(glm::vec2(x,y), 2.0f * glm::vec2(-sin(theta), cos(theta)));
+
+                // std::cout<<x<<" "<<y<<" "<<theta<<std::endl;
             }
         }
     }
@@ -43,6 +49,7 @@ public:
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
+    // float GRAVITY = 0;
 
     // STEPS
     void p2g();

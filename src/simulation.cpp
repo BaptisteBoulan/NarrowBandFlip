@@ -87,7 +87,7 @@ void Simulation::p2g() {
 
 void Simulation::applyGravity(float dt) {
     for (int k = 0; k < (size+1)*size; k++) {
-        if (grid.vMasses[k] > 1e-2)
+        // if (grid.vMasses[k] > 1e-2)
         grid.new_vs[k] = grid.vs[k] + GRAVITY * dt;
         grid.new_us[k] = grid.us[k];
     }
@@ -131,49 +131,42 @@ void Simulation::solvePressure(float dt) {
     std::vector<float> Ad(n, 0.0f);
     std::vector<float> b(n, 0.0f);
 
-    // 1. Prepare RHS: b = -h^2 * divergence
     for (int i = 0; i < n; i++) {
         if (!grid.solidCells[i]) {
             b[i] = -h * h * grid.divergence[i];
         }
-        grid.pressure[i] = 0.0f; // Initial guess p_0 = 0
+        grid.pressure[i] = 0.0f;
     }
 
-    // 2. Initial residual r_0 = b - A*p_0. Since p_0 is 0, r_0 = b
+    // Initial residual is b since p_0 = 0
     r = b; 
-    d = r; // Initial direction d_0 = r_0
+    d = r;
     
-    double deltaNew = dotProduct(r, r);
-    double epsilon = 1e-6; // Convergence threshold
+    float deltaNew = dotProduct(r, r);
+    float epsilon = 1e-6;
     int maxIter = 100;
 
     for (int k = 0; k < maxIter; k++) {
         if (deltaNew < epsilon)  {
-            std::cout << "CG converged in " << k << " iterations. Residual: " << deltaNew << std::endl;
+            // std::cout << "CG converged in " << k << " iterations. Residual: " << deltaNew << std::endl;
             break;
         }
 
-        // Ad = A * d
         applyA(d, Ad);
 
-        // alpha = r^T * r / (d^T * A * d)
-        double dAd = dotProduct(d, Ad);
-        float alpha = (dAd == 0) ? 0.0f : (float)(deltaNew / dAd);
+        float dAd = dotProduct(d, Ad);
+        float alpha = (dAd < 1e-6) ? 0.0f : (deltaNew / dAd);
 
-        // p = p + alpha * d
-        // r = r - alpha * Ad
         for (int i = 0; i < n; i++) {
             grid.pressure[i] += alpha * d[i];
             r[i] -= alpha * Ad[i];
         }
 
-        double deltaOld = deltaNew;
+        float deltaOld = deltaNew;
         deltaNew = dotProduct(r, r);
 
-        // beta = deltaNew / deltaOld
         float beta = (float)(deltaNew / deltaOld);
 
-        // d = r + beta * d
         for (int i = 0; i < n; i++) {
             d[i] = r[i] + beta * d[i];
         }

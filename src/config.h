@@ -12,3 +12,5 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+
+#define M_PI 3.1415265
