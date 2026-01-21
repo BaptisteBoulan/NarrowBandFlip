@@ -43,6 +43,8 @@ public:
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
+    float OMEGA = 1.7f;
+    bool overRelaxation = false;
 
     // STEPS
     void p2g();

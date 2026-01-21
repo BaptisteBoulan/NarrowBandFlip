@@ -30,10 +30,10 @@ public:
         // }
 
         for (int j = size/4; j < 3*size/4; j++) {
-            grid.new_vs[grid.vIdx(size/2-1, j)] = 1.0f;
-            grid.new_vs[grid.vIdx(size/2, j)] = 2.0f;
-            grid.new_vs[grid.vIdx(size/2+1, j)] = 2.0f;
-            grid.new_vs[grid.vIdx(size/2+2, j)] = 1.0f;
+            grid.new_us[grid.vIdx(size/2-1, j)] = 1.0f;
+            grid.new_us[grid.vIdx(size/2, j)] = 2.0f;
+            grid.new_us[grid.vIdx(size/2+1, j)] = 2.0f;
+            grid.new_us[grid.vIdx(size/2+2, j)] = 1.0f;
         }
         computeInterpolatedVelocities();
     }

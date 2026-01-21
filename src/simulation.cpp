@@ -143,8 +143,14 @@ void Simulation::computePressures(float dt) {
             }
 
             if (fluidNeighbors > 0) {
-                int idx = grid.gridIdx(i, j);
-                grid.pressure[idx] = (sumPressures - (h * h * grid.divergence[idx])) / fluidNeighbors;
+                if (overRelaxation) {
+                    int idx = grid.gridIdx(i, j);     
+                    float p_gs = (sumPressures - (h * h * grid.divergence[idx])) / fluidNeighbors;         
+                    grid.pressure[idx] = (1.0f - OMEGA) * grid.pressure[idx] + OMEGA * p_gs;
+                } else {
+                    int idx = grid.gridIdx(i, j);
+                    grid.pressure[idx] = (sumPressures - (h * h * grid.divergence[idx])) / fluidNeighbors;
+                }
             }
         }
     }
@@ -314,5 +320,5 @@ void Simulation::computeR() {
         }
     }
     double residualNorm = std::sqrt(sumSquaredResiduals / (activeCells > 0 ? activeCells : 1));
-    std::cout << "Residual Norm (Jacobi Delta): " << residualNorm << std::endl;
+    std::cout << "Residual Norm : " << residualNorm << std::endl;
 }

@@ -37,8 +37,8 @@ add_executable(renderze
 
     src/main.cpp
     src/shader.cpp
-    src/simulationNoParticle.h
-    src/simulationNoParticle.cpp
+    src/simulation.h
+    src/simulation.cpp
     
     )
 
