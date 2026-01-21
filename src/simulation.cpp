@@ -123,43 +123,60 @@ void Simulation::computeDivergences(float dt) {
     }
 }
 
-void Simulation::computePressures(float dt) {
-    for (int i = 1; i < size - 1; i++) {
-        for (int j = 1; j < size - 1; j++) {
-            if (grid.solidCells[grid.gridIdx(i, j)]) continue; // Skip solid cells
+void Simulation::solvePressure(float dt) {
+    int n = grid.total_size;
+    std::vector<float> r(n, 0.0f);
+    std::vector<float> d(n, 0.0f);
+    std::vector<float> Ad(n, 0.0f);
+    std::vector<float> b(n, 0.0f);
 
-            float sumPressures = 0.0f;
-            int fluidNeighbors = 0;
+    // 1. Prepare RHS: b = -h^2 * divergence
+    for (int i = 0; i < n; i++) {
+        if (!grid.solidCells[i]) {
+            b[i] = -h * h * grid.divergence[i];
+        }
+        grid.pressure[i] = 0.0f; // Initial guess p_0 = 0
+    }
 
-            int neighbors[4][2] = {{i+1, j}, {i-1, j}, {i, j+1}, {i, j-1}};
-            
-            for (auto& n : neighbors) {
-                int ni = n[0];
-                int nj = n[1];
-                if (!grid.solidCells[grid.gridIdx(ni, nj)]) {
-                    sumPressures += grid.pressure[grid.gridIdx(ni, nj)];
-                    fluidNeighbors++;
-                }
-            }
+    // 2. Initial residual r_0 = b - A*p_0. Since p_0 is 0, r_0 = b
+    r = b; 
+    d = r; // Initial direction d_0 = r_0
+    
+    double deltaNew = dotProduct(r, r);
+    double epsilon = 1e-6; // Convergence threshold
+    int maxIter = 100;
 
-            if (fluidNeighbors > 0) {
-                int idx = grid.gridIdx(i, j);
-                grid.pressure[idx] = (sumPressures - (h * h * grid.divergence[idx])) / fluidNeighbors;
-            }
+    for (int k = 0; k < maxIter; k++) {
+        if (deltaNew < epsilon)  {
+            std::cout << "CG converged in " << k << " iterations. Residual: " << deltaNew << std::endl;
+            break;
+        }
+
+        // Ad = A * d
+        applyA(d, Ad);
+
+        // alpha = r^T * r / (d^T * A * d)
+        double dAd = dotProduct(d, Ad);
+        float alpha = (dAd == 0) ? 0.0f : (float)(deltaNew / dAd);
+
+        // p = p + alpha * d
+        // r = r - alpha * Ad
+        for (int i = 0; i < n; i++) {
+            grid.pressure[i] += alpha * d[i];
+            r[i] -= alpha * Ad[i];
+        }
+
+        double deltaOld = deltaNew;
+        deltaNew = dotProduct(r, r);
+
+        // beta = deltaNew / deltaOld
+        float beta = (float)(deltaNew / deltaOld);
+
+        // d = r + beta * d
+        for (int i = 0; i < n; i++) {
+            d[i] = r[i] + beta * d[i];
         }
     }
-}
-
-void Simulation::solvePressure(float dt) {
-    for (int k = 0; k < grid.total_size; k++) grid.pressure[k] = 0;
-
-    // Pressure solving iterations
-    for (int k = 0; k < 100; k++) {
-        computePressures(dt);
-    }
-    computeR();
-
-    
 }
 
 void Simulation::applyPressure(float dt) {
@@ -284,35 +301,39 @@ void Simulation::g2p(float dt) {
     }
 }
 
-void Simulation::computeR() {
-    double sumSquaredResiduals = 0.0;
-    int activeCells = 0;
 
-    for (int i = 1; i < size - 1; i++) {
-        for (int j = 1; j < size - 1; j++) {
-            if (grid.solidCells[grid.gridIdx(i, j)]) continue;
+void Simulation::applyA(const std::vector<float>& x, std::vector<float>& Ax) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            int idx = grid.gridIdx(i, j);
+            if (grid.solidCells[idx]) {
+                Ax[idx] = 0.0f;
+                continue;
+            }
 
-            float p_ij = grid.pressure[grid.gridIdx(i, j)];
-            float sumPNeighbors = 0.0f;
+            float val = 0.0f;
             int fluidNeighbors = 0;
-
             int neighbors[4][2] = {{i+1, j}, {i-1, j}, {i, j+1}, {i, j-1}};
+
             for (auto& n : neighbors) {
-                if (!grid.solidCells[grid.gridIdx(n[0], n[1])]) {
-                    sumPNeighbors += grid.pressure[grid.gridIdx(n[0], n[1])];
-                    fluidNeighbors++;
+                int ni = n[0], nj = n[1];
+                // Boundary check
+                if (ni >= 0 && ni < size && nj >= 0 && nj < size) {
+                    if (!grid.solidCells[grid.gridIdx(ni, nj)]) {
+                        val -= x[grid.gridIdx(ni, nj)];
+                        fluidNeighbors++;
+                    }
                 }
             }
-
-            if (fluidNeighbors > 0) {
-                float targetP = (sumPNeighbors - (h * h * grid.divergence[grid.gridIdx(i, j)])) / fluidNeighbors;
-                float localResidual = targetP - p_ij; 
-                
-                sumSquaredResiduals += localResidual * localResidual;
-                activeCells++;
-            }
+            Ax[idx] = (fluidNeighbors * x[idx]) + val;
         }
     }
-    double residualNorm = std::sqrt(sumSquaredResiduals / (activeCells > 0 ? activeCells : 1));
-    std::cout << "Residual Norm (Jacobi Delta): " << residualNorm << std::endl;
+}
+
+float Simulation::dotProduct(const std::vector<float>& a, const std::vector<float>& b) {
+    float result = 0.0;
+    for (size_t i = 0; i < a.size(); i++) {
+        result += a[i] * b[i];
+    }
+    return result;
 }

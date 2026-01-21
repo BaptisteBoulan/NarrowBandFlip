@@ -53,6 +53,7 @@ private:
     void applyPressure(float dt);
     void g2p(float dt);
 
-    // DEBUG
-    void computeR();
+    // HELPERS
+    void applyA(const std::vector<float>& x, std::vector<float>& Ax);
+    float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
 };
