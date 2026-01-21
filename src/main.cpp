@@ -1,5 +1,4 @@
-#include "SimulationNoParticle.h"
-// #include "Simulation.h"
+#include "Simulation.h"
 #include "shader.h"
 
 enum class RenderMode { PRESSURE, DIVERGENCE };

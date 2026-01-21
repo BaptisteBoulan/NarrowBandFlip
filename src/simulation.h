@@ -48,7 +48,6 @@ private:
     void p2g();
     void applyGravity(float dt);
     void computeDivergences(float dt);
-    void computePressures(float dt);
     void solvePressure(float dt);
     void applyPressure(float dt);
     void g2p(float dt);

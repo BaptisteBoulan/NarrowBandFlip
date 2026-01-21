@@ -87,6 +87,7 @@ void Simulation::p2g() {
 
 void Simulation::applyGravity(float dt) {
     for (int k = 0; k < (size+1)*size; k++) {
+        if (grid.vMasses[k] > 1e-2)
         grid.new_vs[k] = grid.vs[k] + GRAVITY * dt;
         grid.new_us[k] = grid.us[k];
     }
