@@ -15,25 +15,32 @@ public:
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 if (i == 0 || i == size - 1 || j == 0 || j == size - 1) {
-                    grid.solidCells[grid.gridIdx(i, j)] = true;
+                    grid.cellType[grid.gridIdx(i, j)] = CellType::SOLID;
                 } else {
-                    grid.solidCells[grid.gridIdx(i, j)] = false;
+                    grid.cellType[grid.gridIdx(i, j)] = CellType::AIR;
                 }
             }
         }
 
+        for (int i = size / 2 - 2; i <= size / 2 + 2; i++) {
+            for (int j = size / 4 - 2; j <= size / 4 + 2; j++) {
+                grid.cellType[grid.gridIdx(i, j)] = CellType::SOLID;
+            }
+        }
+
         // Init particles
-        for(float x = 0.2f; x < 0.8f; x += 0.01f) {
-            for (float y = 0.2f; y < 0.8f; y += 0.01f) {
+        glm::vec2 p1(0.2f, 0.4f);
+        glm::vec2 p2(0.8f, 0.8f);
+        float spacing = 0.02f;
 
-                float theta = (abs(x-0.5f)<1e-3) ? (float)M_PI/2.0f : (float)atan((y-0.5f)/(x-0.5f));
-                if (x<0.5f) theta += (float)M_PI;
+        for(float x = p1.x; x < p2.x; x += spacing) {
+            for (float y = p1.y; y < p2.y; y += spacing) {
 
-                particles.emplace_back(glm::vec2(x,y), 2.0f * glm::vec2(-sin(theta), cos(theta)));
+                particles.emplace_back(glm::vec2(x,y));
             }
         }
     }
-    
+
     // STEPS
     void p2g();
     void applyForces(float dt);
@@ -42,15 +49,15 @@ public:
     void applyPressure(float dt);
     void g2p(float dt);
 
+    // HELPERS
+    void addParticle(glm::vec2 pos);
+
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
-    // float GRAVITY = 0;
-
 
     // HELPERS
     void applyA(const std::vector<float>& x, std::vector<float>& Ax);
     float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
     void classifyCells();
-    void addParticle(glm::vec2 pos);
 };

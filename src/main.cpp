@@ -67,7 +67,7 @@ void render() {
         
         if (!paused) {
             sim.p2g();
-            sim.applyGravity(dt);
+            sim.applyForces(dt);
             sim.computeDivergences(dt);
             sim.solvePressure(dt);
             sim.applyPressure(dt);
