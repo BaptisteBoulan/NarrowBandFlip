@@ -5,7 +5,20 @@
 // === MAIN STEPS ===
 
 void Simulation::p2g() {
-    p2g_GPU();
+
+
+
+    p2gGPU();
+
+    // Normalize
+    for (int k = 0; k < grid.us.size(); k++) {
+        if (grid.uMasses[k] > 1e-9f) grid.us[k] /= grid.uMasses[k];
+    }
+    for (int k = 0; k < grid.vs.size(); k++) {
+        if (grid.vMasses[k] > 1e-9f) grid.vs[k] /= grid.vMasses[k];
+    }
+
+    classifyCells();
 }
 
 void Simulation::applyForces(float dt) {
@@ -148,128 +161,7 @@ void Simulation::applyPressure(float dt) {
 void Simulation::g2p(float dt) {
     float alpha = 0.95f; // Flip ratio
 
-    for (auto& p : particles) {
-        // p.vel = glm::vec2(0.0f);
-
-        float px = p.pos.x * size;
-        float py = p.pos.y * size;
-
-        // U-VELOCITIES
-        float ux = px;
-        float uy = py - 0.5f;
-        
-        int ui = (int)ux;
-        int uj = (int)uy;
-        float uwx = ux - ui;
-        float uwy = uy - uj;
-
-        // Bilinear weights for U
-        float weights_u[4] = {
-            (1 - uwx) * (1 - uwy), // (i, j)
-            uwx * (1 - uwy),       // (i+1, j)
-            (1 - uwx) * uwy,       // (i, j+1)
-            uwx * uwy              // (i+1, j+1)
-        };
-        int u_indices[4] = { grid.uIdx(ui, uj), grid.uIdx(ui+1, uj), grid.uIdx(ui, uj+1), grid.uIdx(ui+1, uj+1) };
-        // Transfer U
-        float pic_u = 0.0f;
-        float flip_u = p.vel.x;
-        
-        for(int k=0; k<4; ++k) {
-            if (u_indices[k] < 0 || u_indices[k] >= grid.total_size) continue;
-            float new_u = grid.new_us[u_indices[k]];
-            float old_u = grid.us[u_indices[k]];
-
-            pic_u += new_u * weights_u[k];
-            flip_u += (new_u - old_u) * weights_u[k];
-        }
-
-        // V-VELOCITIES
-        float vx = px - 0.5f;
-        float vy = py;
-
-        int vi = (int)vx;
-        int vj = (int)vy;
-        float vwx = vx - vi;
-        float vwy = vy - vj;
-
-        // Bilinear weights for V
-        float weights_v[4] = {
-            (1 - vwx) * (1 - vwy), // (i, j)
-            vwx * (1 - vwy),       // (i+1, j)
-            (1 - vwx) * vwy,       // (i, j+1)
-            vwx * vwy              // (i+1, j+1)
-        };
-        int v_indices[4] = { grid.vIdx(vi, vj), grid.vIdx(vi+1, vj), grid.vIdx(vi, vj+1), grid.vIdx(vi+1, vj+1) };
-        
-        // Transfer V
-        float pic_v = 0.0f;
-        float flip_v = p.vel.y;
-        
-        for(int k=0; k<4; ++k) {
-            if (v_indices[k] < 0 || v_indices[k] >= grid.total_size) continue;
-            float new_v = grid.new_vs[v_indices[k]];
-            float old_v = grid.vs[v_indices[k]];
-
-            pic_v += new_v * weights_v[k];
-            flip_v += (new_v - old_v) * weights_v[k];
-        }
-
-        p.vel.x = (1.0f - alpha) * pic_u + alpha * flip_u;
-        p.vel.y = (1.0f - alpha) * pic_v + alpha * flip_v;
-
-        p.pos += p.vel * dt;
-
-        // Collision
-        int cellX = (int)(p.pos.x * size);
-        int cellY = (int)(p.pos.y * size);
-
-        cellX = std::max(0, std::min(size - 1, cellX));
-        cellY = std::max(0, std::min(size - 1, cellY));
-
-        if (grid.cellType[grid.gridIdx(cellX, cellY)] == CellType::SOLID) {
-            float cellMinX = (float)cellX / size;
-            float cellMaxX = (float)(cellX + 1) / size;
-            float cellMinY = (float)cellY / size;
-            float cellMaxY = (float)(cellY + 1) / size;
-
-            // The 2.0f is a safety to ensure the particle does not try to get out of the box
-            float distLeft   = (p.pos.x < h        || grid.cellType[grid.gridIdx(cellX-1, cellY)] == CellType::SOLID) ? 2.0f : p.pos.x - cellMinX;
-            float distRight  = (p.pos.x > 1.0f - h || grid.cellType[grid.gridIdx(cellX+1, cellY)] == CellType::SOLID) ? 2.0f : cellMaxX - p.pos.x;
-            float distBottom = (p.pos.y < h        || grid.cellType[grid.gridIdx(cellX, cellY-1)] == CellType::SOLID) ? 2.0f : p.pos.y - cellMinY;
-            float distTop    = (p.pos.y > 1.0f - h || grid.cellType[grid.gridIdx(cellX, cellY+1)] == CellType::SOLID) ? 2.0f : cellMaxY - p.pos.y;
-
-            float minDist = distLeft;
-            int side = 0;
-
-            if (distRight < minDist)  { minDist = distRight;  side = 1; }
-            if (distBottom < minDist) { minDist = distBottom; side = 2; }
-            if (distTop < minDist)    { minDist = distTop;    side = 3; }
-
-            float eps = 1e-4f;
-
-            switch (side) {
-                case 0: // Left edge
-                    p.pos.x = cellMinX - eps;
-                    p.vel.x = 0; 
-                    break;
-                case 1: // Right edge
-                    p.pos.x = cellMaxX + eps;
-                    p.vel.x = 0;
-                    break;
-                case 2: // Bottom edge
-                    p.pos.y = cellMinY - eps;
-                    p.vel.y = 0;
-                    break;
-                case 3: // Top edge
-                    p.pos.y = cellMaxY + eps;
-                    p.vel.y = 0;
-                    break;
-            }
-            p.pos.x = std::min(1.0f - h, std::max(h, p.pos.x));
-            p.pos.y = std::min(1.0f - h, std::max(h, p.pos.y));
-        }
-    }
+    g2pGPU(dt);
 }
 
 
@@ -333,14 +225,18 @@ void Simulation::addParticle(glm::vec2 pos) {
     int j = (int)(pos.y*size);
     if (i<1 || i>=size-1 || j<1 || j>=size-1) return;
     if (grid.cellType[grid.gridIdx(i,j)] == CellType::SOLID) return;
-    glm::vec2 vel((float)rand()/RAND_MAX-0.5f, 0.0f);
-    particles.emplace_back(pos, vel);
+
+    float theta = (float)(2 * M_PI * rand())/RAND_MAX;
+    float rho = 0.03f * (float)rand()/RAND_MAX;
+    glm::vec2 offset(cos(theta), sin(theta));
+    particles.emplace_back(pos + rho * offset);
 
     updateParticleBuffer();
 }
 
 
-// GPU
+// === GPU ===
+
 void Simulation::initGPU() {
     // Particle SSBO
     glGenBuffers(1, &particleSSBO);
@@ -371,22 +267,37 @@ void Simulation::initGPU() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vMassSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, grid.vMasses.size() * sizeof(float), grid.vMasses.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, vMassSSBO);
+
+    // new us SSBO
+    glGenBuffers(1, &newuSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newuSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.new_us.size() * sizeof(float), grid.new_us.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, newuSSBO);
+
+    // new vs SSBO
+    glGenBuffers(1, &newvSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newvSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.new_vs.size() * sizeof(float), grid.new_vs.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, newvSSBO);
+    
+    // pressure SSBO
+    glGenBuffers(1, &pressureSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, pressureSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.pressure.size() * sizeof(float), grid.pressure.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, pressureSSBO);
+
+    // cellType SSBO
+    glGenBuffers(1, &cellTypeSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cellTypeSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.cellType.size() * sizeof(float), grid.cellType.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, cellTypeSSBO);
     
     // Compile shaders
     p2gProg = createShaderProgram({{"shaders/computeP2G.glsl", ShaderType::COMPUTE}});
+    g2pProg = createShaderProgram({{"shaders/computeG2P.glsl", ShaderType::COMPUTE}});
 }
 
-void Simulation::p2g_GPU() {
-    
-    // RESET GRIDS
-    grid.us.assign(size * (size + 1), 0.0f);
-    grid.vs.assign((size + 1) * size, 0.0f); 
-
-    grid.uMasses.assign(size * (size + 1), 0.0f);
-    grid.vMasses.assign((size + 1) * size, 0.0f);
-
-    // GPU
-
+void Simulation::p2gGPU() {
     // Clear data
     float zero = 0.0f;
     GLuint buffersToClear[] = { uSSBO, vSSBO, uMassSSBO, vMassSSBO };
@@ -404,7 +315,7 @@ void Simulation::p2g_GPU() {
     glUniform1i(glGetUniformLocation(p2gProg, "size"), size);
     glUniform1i(glGetUniformLocation(p2gProg, "numParticles"), (int)particles.size());
 
-    int numGroups = (particles.size() + 255) / 256;
+    int numGroups = ((int)particles.size() + 255) / 256;
     glDispatchCompute(numGroups, 1, 1);
 
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -420,18 +331,43 @@ void Simulation::p2g_GPU() {
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vMassSSBO);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.vMasses.size() * sizeof(float), grid.vMasses.data());
+}
 
-    // BACK TO CPU
+void Simulation::g2pGPU(float dt) {
 
-    // Normalize
-    for (int k = 0; k < grid.us.size(); k++) {
-        if (grid.uMasses[k] > 1e-9f) grid.us[k] /= grid.uMasses[k];
-    }
-    for (int k = 0; k < grid.vs.size(); k++) {
-        if (grid.vMasses[k] > 1e-9f) grid.vs[k] /= grid.vMasses[k];
-    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.us.size() * sizeof(float), grid.us.data());
 
-    classifyCells();
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.vs.size() * sizeof(float), grid.vs.data());
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uMassSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.uMasses.size() * sizeof(float), grid.uMasses.data());
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vMassSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.vMasses.size() * sizeof(float), grid.vMasses.data());
+    
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newuSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.new_us.size() * sizeof(float), grid.new_us.data());
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newvSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.new_vs.size() * sizeof(float), grid.new_vs.data());
+
+    glUseProgram(g2pProg);
+    
+    // Set uniforms
+    glUniform1i(glGetUniformLocation(g2pProg, "size"), size);
+    glUniform1i(glGetUniformLocation(g2pProg, "numParticles"), (int)particles.size());
+    glUniform1f(glGetUniformLocation(g2pProg, "dt"), dt);
+    glUniform1f(glGetUniformLocation(g2pProg, "h"), h);
+
+    int numGroups = ((int)particles.size() + 255) / 256;
+    glDispatchCompute(numGroups, 1, 1);
+
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, particleSSBO);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, particles.size() * sizeof(Particle), particles.data());
 }
 
 void Simulation::updateParticleBuffer() {

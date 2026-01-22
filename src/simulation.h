@@ -9,7 +9,7 @@ public:
     Grid grid;
     std::vector<Particle> particles;
 
-    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, pressureSSBO, cellTypeSSBO, axSSBO;
+    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, axSSBO;
     GLuint p2gProg, g2pProg, applyAProg;
 
     // CONSTRUCTOR
@@ -34,7 +34,7 @@ public:
         // Init particles
         glm::vec2 p1(0.2f, 0.4f);
         glm::vec2 p2(0.8f, 0.8f);
-        float spacing = 0.02f;
+        float spacing = 0.01f;
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
@@ -68,5 +68,6 @@ private:
     void updateParticleBuffer();
 
     // GPU
-    void p2g_GPU();
+    void p2gGPU();
+    void g2pGPU(float dt);
 };

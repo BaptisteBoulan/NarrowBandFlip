@@ -12,7 +12,7 @@ bool paused = true;
 // Mouse
 bool leftMouseDown = false;
 float mouseX, mouseY;
-float SPAWN_RATE = 1.0f / 400.0f;
+float SPAWN_RATE = 1.0f / 1000.0f;
 
 
 float quadVertices[] = {
@@ -91,7 +91,7 @@ void render() {
 
     while (!glfwWindowShouldClose(window)) {
         float currentTime = (float)glfwGetTime();
-        float dt = std::min(currentTime - lastTime, 0.02f);
+        float dt = currentTime - lastTime;
         lastTime = currentTime;
 
 
@@ -104,6 +104,8 @@ void render() {
             }
             glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
         }
+
+        dt = std::min(dt, 0.02f);
         
         if (!paused) {
             sim.p2g();
