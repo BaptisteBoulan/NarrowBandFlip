@@ -1,3 +1,4 @@
+#pragma once
 #include "config.h"
 
 enum class ShaderType {
@@ -6,6 +7,7 @@ enum class ShaderType {
     GEOMETRY,
     TESS_CONTROL,
     TESS_EVAL,
+    COMPUTE
 };
 
 GLenum getShaderType(ShaderType type);

@@ -12,7 +12,7 @@ bool paused = true;
 // Mouse
 bool leftMouseDown = false;
 float mouseX, mouseY;
-float SPAWN_RATE = 1.0f / 200.0f;
+float SPAWN_RATE = 1.0f / 400.0f;
 
 
 float quadVertices[] = {
@@ -29,7 +29,7 @@ float quadVertices[] = {
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_SPACE) paused = !paused;         // Pause/Play simulation
-        if (key == GLFW_KEY_ENTER) sim = Simulation(simRes); // Restart simulation
+        if (key == GLFW_KEY_ENTER) {sim = Simulation(simRes); sim.initGPU();}// Restart simulation
     }
 }
 
@@ -44,8 +44,8 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
 
-    mouseX = xpos / (double)width;
-    mouseY = 1.0 - (ypos / (double)height); 
+    mouseX = xpos / (float)width;
+    mouseY = 1.0f - (ypos / (float)height); 
 }
 
 void initGL() {
@@ -69,6 +69,8 @@ void initGL() {
     glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), NULL, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
+
+    sim.initGPU();
 }
 
 
@@ -88,7 +90,7 @@ void render() {
     float spawnTimer = 0;
 
     while (!glfwWindowShouldClose(window)) {
-        float currentTime = glfwGetTime();
+        float currentTime = (float)glfwGetTime();
         float dt = std::min(currentTime - lastTime, 0.02f);
         lastTime = currentTime;
 

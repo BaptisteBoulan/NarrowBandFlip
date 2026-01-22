@@ -9,6 +9,9 @@ public:
     Grid grid;
     std::vector<Particle> particles;
 
+    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, pressureSSBO, cellTypeSSBO, axSSBO;
+    GLuint p2gProg, g2pProg, applyAProg;
+
     // CONSTRUCTOR
     Simulation(int size) : size(size), grid(size), h(1.0f/size) {
         // Init walls
@@ -35,7 +38,6 @@ public:
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
-
                 particles.emplace_back(glm::vec2(x,y));
             }
         }
@@ -52,6 +54,9 @@ public:
     // HELPERS
     void addParticle(glm::vec2 pos);
 
+    // GPU
+    void initGPU();
+
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
@@ -60,4 +65,8 @@ private:
     void applyA(const std::vector<float>& x, std::vector<float>& Ax);
     float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
     void classifyCells();
+    void updateParticleBuffer();
+
+    // GPU
+    void p2g_GPU();
 };
