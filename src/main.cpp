@@ -37,7 +37,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) leftMouseDown = true;
         else if (action == GLFW_RELEASE) leftMouseDown = false;
-        std::cout<<leftMouseDown<<std::endl;
     }
 }
 
@@ -54,8 +53,11 @@ void initGL() {
     window = glfwCreateWindow(800, 800, "Fluid Simulation", NULL, NULL);
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
     glfwSetKeyCallback(window, key_callback);
 
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
     
 
     // --- Particle Setup ---
@@ -87,8 +89,9 @@ void render() {
 
     while (!glfwWindowShouldClose(window)) {
         float currentTime = glfwGetTime();
-        float dt = currentTime - lastTime;
+        float dt = std::min(currentTime - lastTime, 0.02f);
         lastTime = currentTime;
+
 
         // --- MOUSE SPAWNING LOGIC ---
         if (leftMouseDown && !paused) {
@@ -125,8 +128,6 @@ void render() {
         glfwPollEvents();
     }
 }
-
-
 
 int main() {
     initGL();
