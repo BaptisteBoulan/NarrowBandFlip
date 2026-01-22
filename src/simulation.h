@@ -35,22 +35,7 @@ public:
             }
         }
     }
-
-    // MAIN LOOP
-    void update(float dt) {
-        p2g();
-        applyGravity(dt);
-        computeDivergences(dt);
-        solvePressure(dt);
-        applyPressure(dt);
-        g2p(dt);
-    }
-
-private:
-    float RHO = 1.0f;
-    float GRAVITY = -9.81f;
-    // float GRAVITY = 0;
-
+    
     // STEPS
     void p2g();
     void applyGravity(float dt);
@@ -58,6 +43,12 @@ private:
     void solvePressure(float dt);
     void applyPressure(float dt);
     void g2p(float dt);
+
+private:
+    float RHO = 1.0f;
+    float GRAVITY = -9.81f;
+    // float GRAVITY = 0;
+
 
     // HELPERS
     void applyA(const std::vector<float>& x, std::vector<float>& Ax);
