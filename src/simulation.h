@@ -30,15 +30,13 @@ public:
                 if (x<0.5f) theta += (float)M_PI;
 
                 particles.emplace_back(glm::vec2(x,y), 2.0f * glm::vec2(-sin(theta), cos(theta)));
-
-                // std::cout<<x<<" "<<y<<" "<<theta<<std::endl;
             }
         }
     }
     
     // STEPS
     void p2g();
-    void applyGravity(float dt);
+    void applyForces(float dt);
     void computeDivergences(float dt);
     void solvePressure(float dt);
     void applyPressure(float dt);
@@ -53,4 +51,6 @@ private:
     // HELPERS
     void applyA(const std::vector<float>& x, std::vector<float>& Ax);
     float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
+    void classifyCells();
+    void addParticle(glm::vec2 pos);
 };

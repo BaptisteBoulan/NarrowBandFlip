@@ -74,6 +74,8 @@ void Simulation::p2g() {
             grid.vMasses[v_indices[k]] += weights_v[k];
         }
 
+        classifyCells();
+
     }
 
     // Normalize
@@ -85,18 +87,23 @@ void Simulation::p2g() {
     }
 }
 
-void Simulation::applyGravity(float dt) {
+void Simulation::applyForces(float dt) {
     for (int k = 0; k < (size+1)*size; k++) {
         // if (grid.vMasses[k] > 1e-2)
         grid.new_vs[k] = grid.vs[k] + GRAVITY * dt;
         grid.new_us[k] = grid.us[k];
     }
+
+    // for (int j = 0; j < size/2; j++) {
+    //     int idx = grid.vIdx(size * 6 / 8,j);
+    //     grid.new_vs[idx] += 1.0f;
+    // }
 }
 
 void Simulation::computeDivergences(float dt) {
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
-            if (grid.solidCells[grid.gridIdx(i, j)]) {
+            if (grid.cellType[grid.gridIdx(i, j)] == CellType::SOLID) {
                 // If a face borders a solid cell, the velocity is forced to 0
                 grid.new_us[grid.uIdx(i + 1, j)] = 0.0f;
                 grid.new_us[grid.uIdx(i, j)] = 0.0f;
@@ -108,7 +115,7 @@ void Simulation::computeDivergences(float dt) {
     
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
-            if (grid.solidCells[grid.gridIdx(i, j)]) {
+            if (grid.cellType[grid.gridIdx(i, j)] == CellType::SOLID) {
                 grid.divergence[grid.gridIdx(i, j)] = 0;
                 continue;
             }
@@ -132,8 +139,10 @@ void Simulation::solvePressure(float dt) {
     std::vector<float> b(n, 0.0f);
 
     for (int i = 0; i < n; i++) {
-        if (!grid.solidCells[i]) {
+        if (grid.cellType[i] == CellType::FLUID) {
             b[i] = -h * h * grid.divergence[i];
+        } else {
+            b[i] = 0.0f;
         }
         grid.pressure[i] = 0.0f;
     }
@@ -143,12 +152,13 @@ void Simulation::solvePressure(float dt) {
     d = r;
     
     float deltaNew = dotProduct(r, r);
-    float epsilon = 1e-6;
+    float epsilon = 1e-6f;
     int maxIter = 100;
 
     for (int k = 0; k < maxIter; k++) {
         if (deltaNew < epsilon)  {
-            // std::cout << "CG converged in " << k << " iterations. Residual: " << deltaNew << std::endl;
+            if (dt >= 0.02f)
+            std::cout << "CG converged in " << k << " iterations. Residual: " << deltaNew << " Also dt = " << dt << std::endl;
             break;
         }
 
@@ -179,21 +189,34 @@ void Simulation::applyPressure(float dt) {
     // U VELOCITIES
     for (int i = 1; i < size; i++) {
         for (int j = 1; j < size - 1; j++) {
-            if (!grid.solidCells[grid.gridIdx(i, j)] && !grid.solidCells[grid.gridIdx(i - 1, j)]) {
-                grid.new_us[grid.uIdx(i, j)] -= K * (grid.pressure[grid.gridIdx(i, j)] - grid.pressure[grid.gridIdx(i - 1, j)]);
-            } else {
-                grid.new_us[grid.uIdx(i, j)] = 0.0f; // Solid boundary
+            int idxLeft = grid.gridIdx(i - 1, j);
+            int idxRight = grid.gridIdx(i, j);
+            int uIdx = grid.uIdx(i, j);
+
+            if ((grid.cellType[idxLeft] == CellType::FLUID || grid.cellType[idxRight] == CellType::FLUID) &&
+                (grid.cellType[idxLeft] != CellType::SOLID && grid.cellType[idxRight] != CellType::SOLID)) {
+
+                grid.new_us[uIdx] -= K * (grid.pressure[idxRight] - grid.pressure[idxLeft]);
+            } else if (grid.cellType[idxLeft] == CellType::SOLID || grid.cellType[idxRight] == CellType::SOLID) {
+                grid.new_us[uIdx] = 0.0f;
             }
         }
     }
 
     // V VELOCITIES
-    for (int i = 1; i < size - 1; i++) {
+    for (int i = 0; i < size; i++) {
         for (int j = 1; j < size; j++) {
-            if (!grid.solidCells[grid.gridIdx(i, j)] && !grid.solidCells[grid.gridIdx(i, j-1)]) {
-                grid.new_vs[grid.vIdx(i, j)] -= K * (grid.pressure[grid.gridIdx(i, j)] - grid.pressure[grid.gridIdx(i, j-1)]);
-            } else {
-                grid.new_vs[grid.vIdx(i, j)] = 0.0f; // Solid boundary
+            int idxBot = grid.gridIdx(i, j - 1);
+            int idxTop = grid.gridIdx(i, j);
+            int vIdx = grid.vIdx(i, j);
+
+            if ((grid.cellType[idxBot] == CellType::FLUID || grid.cellType[idxTop] == CellType::FLUID) &&
+                (grid.cellType[idxBot] != CellType::SOLID && grid.cellType[idxTop] != CellType::SOLID)) {
+                
+                grid.new_vs[vIdx] -= K * (grid.pressure[idxTop] - grid.pressure[idxBot]);
+            }
+            else if (grid.cellType[idxBot] == CellType::SOLID || grid.cellType[idxTop] == CellType::SOLID) {
+                grid.new_vs[vIdx] = 0.0f;
             }
         }
     }
@@ -205,7 +228,7 @@ void Simulation::g2p(float dt) {
     float alpha = 0.95f; // Flip ratio
 
     for (auto& p : particles) {
-        p.vel = glm::vec2(0.0f);
+        // p.vel = glm::vec2(0.0f);
 
         float px = p.pos.x * size;
         float py = p.pos.y * size;
@@ -283,43 +306,80 @@ void Simulation::g2p(float dt) {
         cellX = std::max(0, std::min(size - 1, cellX));
         cellY = std::max(0, std::min(size - 1, cellY));
 
-        if (grid.solidCells[grid.gridIdx(cellX, cellY)]) {
-            float fluidX = (float)cellX / size;
-            float fluidY = (float)cellY / size;
+        if (grid.cellType[grid.gridIdx(cellX, cellY)] == CellType::SOLID) {
+            float cellMinX = (float)cellX / size;
+            float cellMaxX = (float)(cellX + 1) / size;
+            float cellMinY = (float)cellY / size;
+            float cellMaxY = (float)(cellY + 1) / size;
 
-            if (cellX == 0) { p.pos.x = h + 0.001f; p.vel.x = 0; }
-            if (cellX == size - 1) { p.pos.x = 1.0f - h - 0.001f; p.vel.x = 0; }
-            if (cellY == 0) { p.pos.y = h + 0.001f; p.vel.y = 0; }
-            if (cellY == size - 1) { p.pos.y = 1.0f - h - 0.001f; p.vel.y = 0; }
+            // The 2.0f is a safety to ensure the particle does not try to get out of the box
+            float distLeft   = (p.pos.x < h        || grid.cellType[grid.gridIdx(cellX-1, cellY)] == CellType::SOLID) ? 2.0f : p.pos.x - cellMinX;
+            float distRight  = (p.pos.x > 1.0f - h || grid.cellType[grid.gridIdx(cellX+1, cellY)] == CellType::SOLID) ? 2.0f : cellMaxX - p.pos.x;
+            float distBottom = (p.pos.y < h        || grid.cellType[grid.gridIdx(cellX, cellY-1)] == CellType::SOLID) ? 2.0f : p.pos.y - cellMinY;
+            float distTop    = (p.pos.y > 1.0f - h || grid.cellType[grid.gridIdx(cellX, cellY+1)] == CellType::SOLID) ? 2.0f : cellMaxY - p.pos.y;
+
+            float minDist = distLeft;
+            int side = 0;
+
+            if (distRight < minDist)  { minDist = distRight;  side = 1; }
+            if (distBottom < minDist) { minDist = distBottom; side = 2; }
+            if (distTop < minDist)    { minDist = distTop;    side = 3; }
+
+            float eps = 1e-4f;
+
+            switch (side) {
+                case 0: // Left edge
+                    p.pos.x = cellMinX - eps;
+                    p.vel.x = 0; 
+                    break;
+                case 1: // Right edge
+                    p.pos.x = cellMaxX + eps;
+                    p.vel.x = 0;
+                    break;
+                case 2: // Bottom edge
+                    p.pos.y = cellMinY - eps;
+                    p.vel.y = 0;
+                    break;
+                case 3: // Top edge
+                    p.pos.y = cellMaxY + eps;
+                    p.vel.y = 0;
+                    break;
+            }
+            p.pos.x = std::min(1.0f - h, std::max(h, p.pos.x));
+            p.pos.y = std::min(1.0f - h, std::max(h, p.pos.y));
         }
     }
 }
 
 
+// HELPERS
+
 void Simulation::applyA(const std::vector<float>& x, std::vector<float>& Ax) {
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
             int idx = grid.gridIdx(i, j);
-            if (grid.solidCells[idx]) {
+            if (grid.cellType[idx] != CellType::FLUID) {
                 Ax[idx] = 0.0f;
                 continue;
             }
 
             float val = 0.0f;
-            int fluidNeighbors = 0;
+            int neighborsCount = 0;
             int neighbors[4][2] = {{i+1, j}, {i-1, j}, {i, j+1}, {i, j-1}};
 
             for (auto& n : neighbors) {
                 int ni = n[0], nj = n[1];
                 // Boundary check
                 if (ni >= 0 && ni < size && nj >= 0 && nj < size) {
-                    if (!grid.solidCells[grid.gridIdx(ni, nj)]) {
-                        val -= x[grid.gridIdx(ni, nj)];
-                        fluidNeighbors++;
+                    int nIdx = grid.gridIdx(ni, nj);
+
+                    if (grid.cellType[nIdx] != CellType::SOLID) {
+                        neighborsCount++;
+                        if (grid.cellType[nIdx] == CellType::FLUID) val -= x[nIdx];
                     }
                 }
             }
-            Ax[idx] = (fluidNeighbors * x[idx]) + val;
+            Ax[idx] = (neighborsCount * x[idx]) + val;
         }
     }
 }
@@ -330,4 +390,27 @@ float Simulation::dotProduct(const std::vector<float>& a, const std::vector<floa
         result += a[i] * b[i];
     }
     return result;
+}
+
+void Simulation::classifyCells() {
+    // reset
+    for(int i=0; i < grid.total_size; ++i) {
+        if(grid.cellType[i] != CellType::SOLID) grid.cellType[i] = CellType::AIR;
+    }
+
+    // mark cells
+    for (auto& p : particles) {
+        int i = (int)(p.pos.x * size);
+        int j = (int)(p.pos.y * size);
+        int idx = grid.gridIdx(i, j);
+        if (grid.cellType[idx] == CellType::AIR) grid.cellType[idx] = CellType::FLUID;
+    }
+}
+
+void Simulation::addParticle(glm::vec2 pos) {
+    int i = (int)(pos.x*size);
+    int j = (int)(pos.y*size);
+    if (grid.cellType[grid.gridIdx(i,j)] == CellType::SOLID) return;
+    glm::vec2 vel((float)rand()/RAND_MAX-0.5f, 0.0f);
+    particles.emplace_back(pos, vel);
 }

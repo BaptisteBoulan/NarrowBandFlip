@@ -1,6 +1,12 @@
 #pragma once
 #include "config.h"
 
+enum class CellType {
+    SOLID,
+    AIR,
+    FLUID
+};
+
 class Grid {
 public:
     int size, total_size;
@@ -18,7 +24,7 @@ public:
 
     std::vector<glm::vec2> interpolatedVelocities; // Interpolated velocities in the middle of each cell for debug purpose
 
-    std::vector<bool> solidCells;
+    std::vector<CellType> cellType;
 
 
     Grid(int size) : size(size) {
@@ -33,7 +39,7 @@ public:
         uMasses.resize(total_size + size, 0.0f);
         vMasses.resize(total_size + size, 0.0f);
         interpolatedVelocities.resize(total_size, glm::vec2(0.0f));
-        solidCells.resize(total_size, false);
+        cellType.resize(total_size, CellType::AIR);
     }
     
     int gridIdx(int x, int y) const { return y * size + x; }
