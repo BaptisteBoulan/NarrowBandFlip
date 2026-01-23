@@ -19,13 +19,13 @@ uniform int size;
 uniform int numParticles;
 uniform float dt;
 uniform float h;
+uniform float alpha;
 
 // Indexing helpers matching the CPU logic
 int getUIdx(int i, int j) { return j * (size + 1) + i; }
 int getVIdx(int i, int j) { return j * size + i; }
 int gridIdx(int i, int j) { return j * size + i; }
 
-float alpha = 0.95f;
 
 void main() {
 

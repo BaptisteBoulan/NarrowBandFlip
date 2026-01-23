@@ -46,8 +46,7 @@ public:
     }
 
     // STEPS
-    void p2g();
-    void applyForces(float dt);
+    void p2g(float dt);
     void computeDivergences(float dt);
     void solvePressure(float dt);
     void applyPressure(float dt);
@@ -62,21 +61,20 @@ public:
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
+    float ALPHA = 0.95f;
     
-    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO;
-    GLuint p2gProg, g2pProg, applyAProg;
-    std::vector<float> Ad, direction, dAd;
+    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO, divSSBO, residualSSBO;
+    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, DotProductProg;
+    std::vector<float> Ad, direction, dAd, residual;
 
     // HELPERS
-    void applyA();
     float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
-    void classifyCells();
     void updateParticleBuffer();
 
     // GPU
-    void p2gGPU();
-    void g2pGPU(float dt);
     template<typename T> void initBuffer(int index, GLuint& ssbo, const std::vector<T>& data);
     template<typename T> void sendDataToGPU(GLuint& ssbo, const std::vector<T>& data);
     template<typename T> void getDataFromGPU(GLuint& ssbo, std::vector<T>& data);
+    void dispatchCompute(GLuint prog, int numX=1, int numY=1, int numZ=1);
+    void clearBuffer(GLuint buffer);
 };

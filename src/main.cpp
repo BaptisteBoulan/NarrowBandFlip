@@ -12,7 +12,7 @@ bool paused = true;
 // Mouse
 bool leftMouseDown = false;
 float mouseX, mouseY;
-float SPAWN_RATE = 1.0f / 1000.0f;
+float SPAWN_RATE = 1.0f / 800.0f;
 
 
 float quadVertices[] = {
@@ -44,8 +44,8 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
 
-    mouseX = xpos / (float)width;
-    mouseY = 1.0f - (ypos / (float)height); 
+    mouseX = (float)xpos / width;
+    mouseY = 1.0f - ((float)ypos / height); 
 }
 
 void initGL() {
@@ -109,11 +109,8 @@ void render() {
         
         if (!paused) {
             float lt = (float)glfwGetTime();
-            sim.p2g();
+            sim.p2g(dt);
             std::cout<<"p2g took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
-            lt = (float)glfwGetTime();
-            sim.applyForces(dt);
-            std::cout<<"applyForces took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
             lt = (float)glfwGetTime();
             sim.computeDivergences(dt);
             std::cout<<"computeDivergences took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
