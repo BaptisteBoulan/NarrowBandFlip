@@ -93,8 +93,7 @@ void Simulation::solvePressure(float dt) {
 
 
     // Set Shader Data
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cellTypeSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.cellType.size() * sizeof(int), grid.cellType.data());
+    sendDataToGPU(cellTypeSSBO, grid.cellType);
 
     for (int k = 0; k < maxIter; k++) {
         if (deltaNew < epsilon)  {
@@ -214,84 +213,49 @@ void Simulation::addParticle(glm::vec2 pos) {
 
 // === GPU ===
 
+template<typename T>
+void Simulation::initBuffer(int index, GLuint& ssbo, const std::vector<T>& data) {
+    glGenBuffers(1, &ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, data.size() * sizeof(T), data.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, ssbo);
+}
+
 void Simulation::initGPU() {
-    // Particle SSBO
-    glGenBuffers(1, &particleSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, particleSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, particles.size() * sizeof(Particle), particles.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, particleSSBO);
 
-    // us SSBO
-    glGenBuffers(1, &uSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.us.size() * sizeof(float), grid.us.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, uSSBO);
+    initBuffer(0, particleSSBO, particles);
+    initBuffer(1, uSSBO, grid.us);
+    initBuffer(2, vSSBO, grid.vs);
+    initBuffer(3, uMassSSBO, grid.uMasses);
+    initBuffer(4, vMassSSBO, grid.vMasses);
+    initBuffer(5, newuSSBO, grid.new_us);
+    initBuffer(6, newvSSBO, grid.new_vs);
+    initBuffer(7, pressureSSBO, grid.pressure);
+    initBuffer(8, cellTypeSSBO, grid.cellType);
+    initBuffer(9, adSSBO, Ad); 
+    initBuffer(10, directionSSBO, direction);
+    initBuffer(11, dAdSSBO, dAd);
 
-    // vs SSBO
-    glGenBuffers(1, &vSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.vs.size() * sizeof(float), grid.vs.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vSSBO);
-    
-    // u masses SSBO
-    glGenBuffers(1, &uMassSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uMassSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.uMasses.size() * sizeof(float), grid.uMasses.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, uMassSSBO);
-
-    // v masses SSBO
-    glGenBuffers(1, &vMassSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vMassSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.vMasses.size() * sizeof(float), grid.vMasses.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, vMassSSBO);
-
-    // new us SSBO
-    glGenBuffers(1, &newuSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newuSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.new_us.size() * sizeof(float), grid.new_us.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, newuSSBO);
-
-    // new vs SSBO
-    glGenBuffers(1, &newvSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newvSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.new_vs.size() * sizeof(float), grid.new_vs.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, newvSSBO);
-    
-    // pressure SSBO
-    glGenBuffers(1, &pressureSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, pressureSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.pressure.size() * sizeof(float), grid.pressure.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, pressureSSBO);
-
-    // cellType SSBO
-    glGenBuffers(1, &cellTypeSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cellTypeSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.cellType.size() * sizeof(float), grid.cellType.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, cellTypeSSBO);
-
-    // Ax SSBO
-    glGenBuffers(1, &adSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, adSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.cellType.size() * sizeof(float), grid.cellType.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, adSSBO);
-
-    // direction SSBO
-    glGenBuffers(1, &directionSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, directionSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, direction.size() * sizeof(float), direction.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, directionSSBO);
-
-    // dAd SSBO
-    glGenBuffers(1, &dAdSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, dAdSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, dAd.size() * sizeof(float), dAd.data(), GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, dAdSSBO);
-    
     // Compile shaders
     p2gProg = createShaderProgram({{"shaders/computeP2G.glsl", ShaderType::COMPUTE}});
     applyAProg = createShaderProgram({{"shaders/computeApplyA.glsl", ShaderType::COMPUTE}});
     g2pProg = createShaderProgram({{"shaders/computeG2P.glsl", ShaderType::COMPUTE}});
 }
+
+
+
+template<typename T>
+void Simulation::sendDataToGPU(GLuint& ssbo, const std::vector<T>& data) {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, data.size() * sizeof(T), data.data());
+
+}
+template<typename T>
+void Simulation::getDataFromGPU(GLuint& ssbo, std::vector<T>& data) {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, data.size() * sizeof(T), data.data());
+}
+
 
 void Simulation::p2gGPU() {
     // Clear data
@@ -302,8 +266,7 @@ void Simulation::p2gGPU() {
         glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32F, GL_RED, GL_FLOAT, &zero);
     }
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, particleSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, particles.size() * sizeof(Particle), particles.data());
+    sendDataToGPU(particleSSBO, particles);
 
     glUseProgram(p2gProg);
     
@@ -316,38 +279,20 @@ void Simulation::p2gGPU() {
 
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSSBO);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.us.size() * sizeof(float), grid.us.data());
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vSSBO);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.vs.size() * sizeof(float), grid.vs.data());
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uMassSSBO);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.uMasses.size() * sizeof(float), grid.uMasses.data());
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vMassSSBO);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.vMasses.size() * sizeof(float), grid.vMasses.data());
+    getDataFromGPU(uSSBO, grid.us);
+    getDataFromGPU(vSSBO, grid.vs);
+    getDataFromGPU(uMassSSBO, grid.uMasses);
+    getDataFromGPU(vMassSSBO, grid.vMasses);
 }
 
 void Simulation::g2pGPU(float dt) {
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.us.size() * sizeof(float), grid.us.data());
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.vs.size() * sizeof(float), grid.vs.data());
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uMassSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.uMasses.size() * sizeof(float), grid.uMasses.data());
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vMassSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.vMasses.size() * sizeof(float), grid.vMasses.data());
-    
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newuSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.new_us.size() * sizeof(float), grid.new_us.data());
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, newvSSBO);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.new_vs.size() * sizeof(float), grid.new_vs.data());
+    sendDataToGPU(uSSBO, grid.us);
+    sendDataToGPU(vSSBO, grid.vs);
+    sendDataToGPU(uMassSSBO, grid.uMasses);
+    sendDataToGPU(vMassSSBO, grid.vMasses);
+    sendDataToGPU(newuSSBO, grid.new_us);
+    sendDataToGPU(newvSSBO, grid.new_vs);
 
     glUseProgram(g2pProg);
     
@@ -362,8 +307,7 @@ void Simulation::g2pGPU(float dt) {
 
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, particleSSBO);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, particles.size() * sizeof(Particle), particles.data());
+    getDataFromGPU(particleSSBO, particles);
 }
 
 void Simulation::updateParticleBuffer() {

@@ -9,8 +9,6 @@ public:
     Grid grid;
     std::vector<Particle> particles;
 
-    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO;
-    GLuint p2gProg, g2pProg, applyAProg;
 
     // CONSTRUCTOR
     Simulation(int size) : size(size), grid(size), h(1.0f/size) {
@@ -64,6 +62,9 @@ public:
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
+    
+    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO;
+    GLuint p2gProg, g2pProg, applyAProg;
     std::vector<float> Ad, direction, dAd;
 
     // HELPERS
@@ -75,4 +76,7 @@ private:
     // GPU
     void p2gGPU();
     void g2pGPU(float dt);
+    template<typename T> void initBuffer(int index, GLuint& ssbo, const std::vector<T>& data);
+    template<typename T> void sendDataToGPU(GLuint& ssbo, const std::vector<T>& data);
+    template<typename T> void getDataFromGPU(GLuint& ssbo, std::vector<T>& data);
 };
