@@ -9,7 +9,7 @@ public:
     Grid grid;
     std::vector<Particle> particles;
 
-    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, axSSBO;
+    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO;
     GLuint p2gProg, g2pProg, applyAProg;
 
     // CONSTRUCTOR
@@ -41,6 +41,10 @@ public:
                 particles.emplace_back(glm::vec2(x,y));
             }
         }
+
+        Ad.assign(grid.total_size, 0.0f);
+        direction.assign(grid.total_size, 0.0f);
+        dAd.assign(grid.total_size, 0.0f);
     }
 
     // STEPS
@@ -60,9 +64,10 @@ public:
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
+    std::vector<float> Ad, direction, dAd;
 
     // HELPERS
-    void applyA(const std::vector<float>& x, std::vector<float>& Ax);
+    void applyA();
     float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
     void classifyCells();
     void updateParticleBuffer();

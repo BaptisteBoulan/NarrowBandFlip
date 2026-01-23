@@ -108,12 +108,25 @@ void render() {
         dt = std::min(dt, 0.02f);
         
         if (!paused) {
+            float lt = (float)glfwGetTime();
             sim.p2g();
+            std::cout<<"p2g took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
+            lt = (float)glfwGetTime();
             sim.applyForces(dt);
+            std::cout<<"applyForces took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
+            lt = (float)glfwGetTime();
             sim.computeDivergences(dt);
+            std::cout<<"computeDivergences took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
+            lt = (float)glfwGetTime();
             sim.solvePressure(dt);
+            std::cout<<"solvePressure took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
+            lt = (float)glfwGetTime();
             sim.applyPressure(dt);
+            std::cout<<"applyPressure took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
+            lt = (float)glfwGetTime();
             sim.g2p(dt);    
+            std::cout<<"g2p took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
+            std::cout<<std::endl;
         }
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);

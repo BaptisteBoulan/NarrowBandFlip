@@ -66,28 +66,35 @@ void Simulation::computeDivergences(float dt) {
 }
 
 void Simulation::solvePressure(float dt) {
-    int n = grid.total_size;
-    std::vector<float> r(n, 0.0f);
-    std::vector<float> d(n, 0.0f);
-    std::vector<float> Ad(n, 0.0f);
-    std::vector<float> b(n, 0.0f);
+    std::vector<float> residual(grid.total_size, 0.0f);
+    std::vector<float> b(grid.total_size, 0.0f);
 
-    for (int i = 0; i < n; i++) {
-        if (grid.cellType[i] == CellType::FLUID) {
-            b[i] = -h * h * grid.divergence[i];
+    direction.assign(grid.total_size, 0.0f);   
+    Ad.assign(grid.total_size, 0.0f);   
+
+
+
+    for (int k = 0; k < grid.total_size; k++) {
+        if (grid.cellType[k] == CellType::FLUID) {
+            b[k] = -h * h * grid.divergence[k];
         } else {
-            b[i] = 0.0f;
+            b[k] = 0.0f;
         }
-        grid.pressure[i] = 0.0f;
+        grid.pressure[k] = 0.0f;
     }
 
     // Initial residual is b since p_0 = 0
-    r = b; 
-    d = r;
+    residual = b; 
+    direction = residual;
     
-    float deltaNew = dotProduct(r, r);
+    float deltaNew = dotProduct(residual, residual);
     float epsilon = 1e-6f;
     int maxIter = 100;
+
+
+    // Set Shader Data
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cellTypeSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, grid.cellType.size() * sizeof(int), grid.cellType.data());
 
     for (int k = 0; k < maxIter; k++) {
         if (deltaNew < epsilon)  {
@@ -96,23 +103,23 @@ void Simulation::solvePressure(float dt) {
             break;
         }
 
-        applyA(d, Ad);
+        applyA();
 
-        float dAd = dotProduct(d, Ad);
+        float dAd = dotProduct(direction, Ad);
         float alpha = (dAd < 1e-6) ? 0.0f : (deltaNew / dAd);
 
-        for (int i = 0; i < n; i++) {
-            grid.pressure[i] += alpha * d[i];
-            r[i] -= alpha * Ad[i];
+        for (int i = 0; i < grid.total_size; i++) {
+            grid.pressure[i] += alpha * direction[i];
+            residual[i] -= alpha * Ad[i];
         }
 
         float deltaOld = deltaNew;
-        deltaNew = dotProduct(r, r);
+        deltaNew = dotProduct(residual, residual);
 
         float beta = (float)(deltaNew / deltaOld);
 
-        for (int i = 0; i < n; i++) {
-            d[i] = r[i] + beta * d[i];
+        for (int i = 0; i < grid.total_size; i++) {
+            direction[i] = residual[i] + beta * direction[i];
         }
     }
 }
@@ -166,36 +173,6 @@ void Simulation::g2p(float dt) {
 
 
 // HELPERS
-
-void Simulation::applyA(const std::vector<float>& x, std::vector<float>& Ax) {
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            int idx = grid.gridIdx(i, j);
-            if (grid.cellType[idx] != CellType::FLUID) {
-                Ax[idx] = 0.0f;
-                continue;
-            }
-
-            float val = 0.0f;
-            int neighborsCount = 0;
-            int neighbors[4][2] = {{i+1, j}, {i-1, j}, {i, j+1}, {i, j-1}};
-
-            for (auto& n : neighbors) {
-                int ni = n[0], nj = n[1];
-                // Boundary check
-                if (ni >= 0 && ni < size && nj >= 0 && nj < size) {
-                    int nIdx = grid.gridIdx(ni, nj);
-
-                    if (grid.cellType[nIdx] != CellType::SOLID) {
-                        neighborsCount++;
-                        if (grid.cellType[nIdx] == CellType::FLUID) val -= x[nIdx];
-                    }
-                }
-            }
-            Ax[idx] = (neighborsCount * x[idx]) + val;
-        }
-    }
-}
 
 float Simulation::dotProduct(const std::vector<float>& a, const std::vector<float>& b) {
     float result = 0.0;
@@ -291,9 +268,28 @@ void Simulation::initGPU() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, cellTypeSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, grid.cellType.size() * sizeof(float), grid.cellType.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, cellTypeSSBO);
+
+    // Ax SSBO
+    glGenBuffers(1, &adSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, adSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, grid.cellType.size() * sizeof(float), grid.cellType.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, adSSBO);
+
+    // direction SSBO
+    glGenBuffers(1, &directionSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, directionSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, direction.size() * sizeof(float), direction.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, directionSSBO);
+
+    // dAd SSBO
+    glGenBuffers(1, &dAdSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, dAdSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, dAd.size() * sizeof(float), dAd.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, dAdSSBO);
     
     // Compile shaders
     p2gProg = createShaderProgram({{"shaders/computeP2G.glsl", ShaderType::COMPUTE}});
+    applyAProg = createShaderProgram({{"shaders/computeApplyA.glsl", ShaderType::COMPUTE}});
     g2pProg = createShaderProgram({{"shaders/computeG2P.glsl", ShaderType::COMPUTE}});
 }
 
@@ -374,4 +370,59 @@ void Simulation::updateParticleBuffer() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, particleSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, particles.size() * sizeof(Particle), particles.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, particleSSBO); // Re-link to binding 0
+}
+
+
+void Simulation::applyA() {
+    bool useGPU = true;
+
+    if(useGPU) {
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, directionSSBO);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, direction.size() * sizeof(float), direction.data());
+
+        // Run the GPU code
+        glUseProgram(applyAProg);
+        glUniform1i(glGetUniformLocation(applyAProg, "size"), size);
+
+        int numGroupsX = (size + 15) / 16;
+        int numGroupsY = (size + 15) / 16;
+        glDispatchCompute(numGroupsX, numGroupsY, 1);
+
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        // Get the data
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, adSSBO);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, Ad.size() * sizeof(float), Ad.data());
+    } else {
+        Ad.assign(grid.total_size, 0.0f);
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                int idx = grid.gridIdx(i, j);
+                if (grid.cellType[idx] != CellType::FLUID) {
+                    Ad[idx] = 0.0f;
+                    continue;
+                }
+
+                float val = 0.0f;
+                int neighborsCount = 0;
+                int neighbors[4][2] = {{i+1, j}, {i-1, j}, {i, j+1}, {i, j-1}};
+
+                for (auto& n : neighbors) {
+                    int ni = n[0], nj = n[1];
+                    // Boundary check
+                    if (ni >= 0 && ni < size && nj >= 0 && nj < size) {
+                        int nIdx = grid.gridIdx(ni, nj);
+
+                        if (grid.cellType[nIdx] != CellType::SOLID) {
+                            neighborsCount++;
+                            if (grid.cellType[nIdx] == CellType::FLUID) val -= direction[nIdx];
+                        }
+                    }
+                }
+                Ad[idx] = (neighborsCount * direction[idx]) + val;
+            }
+        }
+
+    }
 }
