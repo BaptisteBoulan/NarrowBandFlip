@@ -54,6 +54,7 @@ void Simulation::solvePressure(float dt) {
 
     sendDataToGPU(residualSSBO, residual);
     sendDataToGPU(pressureSSBO, grid.pressure);
+    sendDataToGPU(directionSSBO, direction);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
@@ -68,42 +69,27 @@ void Simulation::solvePressure(float dt) {
     int maxIter = 100;
 
     for (int k = 0; k < maxIter; k++) {
-        if (params.deltaNew < epsilon) break;
-        
-        sendDataToGPU(directionSSBO, direction);
+        // Compute Ad        
         dispatchCompute(applyAProg, NUM_GROUP_2D, NUM_GROUP_2D);
-        getDataFromGPU(adSSBO, Ad);
 
-        // To be removed later
-        params.dAd = 0.0f;
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
-
+        // Compute dAd
         glUseProgram(dotProductProg);
         glUniform1i(glGetUniformLocation(dotProductProg, "computeDelta"), 0);
         dispatchCompute(dotProductProg, NUM_GROUP_1D);
 
+        // Compute alpha, passes deltaNew to deltaOld and reset delta new and dad
         dispatchCompute(transitionProg);
-        
-        sendDataToGPU(residualSSBO, residual);
 
+        // Update pressure and residual
         dispatchCompute(moveAlphaProg, NUM_GROUP_1D);
 
-        getDataFromGPU(residualSSBO, residual);
-
+        // Compute deltaNew
         glUseProgram(dotProductProg);
         glUniform1i(glGetUniformLocation(dotProductProg, "computeDelta"), 1);
         dispatchCompute(dotProductProg, NUM_GROUP_1D);
-        
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
-        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
 
-
-        float beta = (float)(params.deltaNew / params.deltaOld);
-
-        for (int i = 0; i < grid.total_size; i++) {
-            direction[i] = residual[i] + beta * direction[i];
-        }
+        // Update direction
+        dispatchCompute(moveBetaProg, NUM_GROUP_1D);
     }
 }
 
@@ -190,22 +176,22 @@ void Simulation::initGPU() {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, paramsSSBO);
 
     // Compile shaders
-    p2gProg = createShaderProgram({{"shaders/computeP2G.glsl", ShaderType::COMPUTE}});
-    normalizeProg = createShaderProgram({{"shaders/computeNormalizeAndApplyForces.glsl", ShaderType::COMPUTE}});
-    resetCellTypesProg = createShaderProgram({{"shaders/computeResetCellTypes.glsl", ShaderType::COMPUTE}});
-    classifyCellsProg = createShaderProgram({{"shaders/computeClassifyCells.glsl", ShaderType::COMPUTE}});
+    p2gProg = createShaderProgram({{"shaders/compute/p2g.glsl", ShaderType::COMPUTE}});
+    normalizeProg = createShaderProgram({{"shaders/compute/normalizeAndApplyForces.glsl", ShaderType::COMPUTE}});
+    resetCellTypesProg = createShaderProgram({{"shaders/compute/resetCellTypes.glsl", ShaderType::COMPUTE}});
+    classifyCellsProg = createShaderProgram({{"shaders/compute/classifyCells.glsl", ShaderType::COMPUTE}});
 
-    computeDivProg = createShaderProgram({{"shaders/computeDiv.glsl", ShaderType::COMPUTE}});
+    computeDivProg = createShaderProgram({{"shaders/compute/computeDiv.glsl", ShaderType::COMPUTE}});
 
-    dotProductProg = createShaderProgram({{"shaders/computeDotProduct.glsl", ShaderType::COMPUTE}});
-    moveAlphaProg = createShaderProgram({{"shaders/computeMoveGradientAlpha.glsl", ShaderType::COMPUTE}});
-    moveBetaProg = createShaderProgram({{"shaders/computeMoveGradientBeta.glsl", ShaderType::COMPUTE}});
-    transitionProg = createShaderProgram({{"shaders/computeTransition.glsl", ShaderType::COMPUTE}});
+    dotProductProg = createShaderProgram({{"shaders/compute/dotProduct.glsl", ShaderType::COMPUTE}});
+    moveAlphaProg = createShaderProgram({{"shaders/compute/moveGradientAlpha.glsl", ShaderType::COMPUTE}});
+    moveBetaProg = createShaderProgram({{"shaders/compute/moveGradientBeta.glsl", ShaderType::COMPUTE}});
+    transitionProg = createShaderProgram({{"shaders/compute/transition.glsl", ShaderType::COMPUTE}});
 
-    applyAProg = createShaderProgram({{"shaders/computeApplyA.glsl", ShaderType::COMPUTE}});
+    applyAProg = createShaderProgram({{"shaders/compute/applyA.glsl", ShaderType::COMPUTE}});
 
-    applyPressureProg = createShaderProgram({{"shaders/computeApplyPressure.glsl", ShaderType::COMPUTE}});
-    g2pProg = createShaderProgram({{"shaders/computeG2P.glsl", ShaderType::COMPUTE}});
+    applyPressureProg = createShaderProgram({{"shaders/compute/applyPressure.glsl", ShaderType::COMPUTE}});
+    g2pProg = createShaderProgram({{"shaders/compute/g2p.glsl", ShaderType::COMPUTE}});
 
 
     // Init unifrom values
