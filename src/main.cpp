@@ -2,18 +2,20 @@
 #include "shader.h"
 
 // Global State
-int simRes = 32;
-Simulation sim(simRes); 
+int simRes = 128;
+Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
-GLuint particleShader;
+GLuint quadVAO, quadVBO;
+GLuint particleShader, backgroundShader;
 bool paused = true;
+bool showBackground = true;
+bool showParticles = false;
 
 // Mouse
 bool leftMouseDown = false;
 float mouseX, mouseY;
-float SPAWN_RATE = 1.0f / 800.0f;
-
+float SPAWN_RATE = 1.0f / simRes / simRes;
 
 float quadVertices[] = {
     // Pos      // Tex
@@ -29,7 +31,9 @@ float quadVertices[] = {
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_SPACE) paused = !paused;         // Pause/Play simulation
-        if (key == GLFW_KEY_ENTER) {sim = Simulation(simRes); sim.initGPU();}// Restart simulation
+        if (key == GLFW_KEY_ENTER) { sim = Simulation(simRes); sim.initGPU(); } // Restart simulation
+        if (key == GLFW_KEY_1) showBackground = !showBackground;  // Toggle background
+        if (key == GLFW_KEY_2) showParticles = !showParticles;    // Toggle particles
     }
 }
 
@@ -45,7 +49,35 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     glfwGetWindowSize(window, &width, &height);
 
     mouseX = (float)xpos / width;
-    mouseY = 1.0f - ((float)ypos / height); 
+    mouseY = 1.0f - ((float)ypos / height);
+}
+
+void initBackground() {
+    float quadVertices[] = {
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+
+    glGenBuffers(1, &quadVBO);
+
+    glBindVertexArray(quadVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 }
 
 void initGL() {
@@ -58,7 +90,6 @@ void initGL() {
 
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
-    
 
     // --- Particle Setup ---
     glGenVertexArrays(1, &particleVAO);
@@ -71,8 +102,8 @@ void initGL() {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
 
     sim.initGPU();
+    initBackground();
 }
-
 
 void initShaders() {
     std::vector<std::pair<char*, ShaderType>> particleShaders = {
@@ -80,8 +111,12 @@ void initShaders() {
         {"shaders/particleFragment.glsl", ShaderType::FRAGMENT},
     };
     particleShader = createShaderProgram(particleShaders);
-}
 
+    backgroundShader = createShaderProgram({
+        {"shaders/backgroundVertex.glsl", ShaderType::VERTEX},
+        {"shaders/backgroundFragment.glsl", ShaderType::FRAGMENT}
+    });
+}
 
 void render() {
     float lastTime = (float)glfwGetTime();
@@ -104,7 +139,6 @@ void render() {
             std::cout << "FPS: " << fps << std::endl;
         }
 
-
         // --- MOUSE SPAWNING LOGIC ---
         if (leftMouseDown && !paused) {
             spawnTimer += dt;
@@ -112,11 +146,13 @@ void render() {
                 sim.addParticle(glm::vec2((float)mouseX, (float)mouseY));
                 spawnTimer -= SPAWN_RATE;
             }
+            sim.updateParticleBuffer();
+            glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
             glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
         }
 
         dt = std::min(dt, 0.02f);
-        
+
         if (!paused) {
             sim.p2g(dt);
             sim.computeDivergences(dt);
@@ -127,14 +163,23 @@ void render() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // BACKGROUND DISPLAY
+        if (showBackground) {
+            glUseProgram(backgroundShader);
+            glUniform1i(glGetUniformLocation(backgroundShader, "size"), simRes);
+            glBindVertexArray(quadVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
         // PARTICLE DISPLAY
-        glUseProgram(particleShader);
-        glBindVertexArray(particleVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-        // Update only the data, don't reallocate the buffer
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
-        glPointSize(5.0f);
-        glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
+        if (showParticles) {
+            glUseProgram(particleShader);
+            glBindVertexArray(particleVAO);
+            glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
+            glPointSize(1.0f);
+            glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();

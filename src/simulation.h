@@ -51,9 +51,9 @@ public:
         }
 
         // Init particles
-        glm::vec2 p1(0.2f, 0.4f);
-        glm::vec2 p2(0.8f, 0.8f);
-        float spacing = 0.01f;
+        glm::vec2 p1(0.6f, 0.05f);
+        glm::vec2 p2(0.95f, 0.95f);
+        float spacing = 50.0f / grid.total_size;
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
@@ -79,6 +79,7 @@ public:
 
     // HELPERS
     void addParticle(glm::vec2 pos);
+    void updateParticleBuffer();
 
     // GPU
     void initGPU();
@@ -90,7 +91,7 @@ private:
     int NUM_GROUP_1D;
     int NUM_GROUP_2D;
 
-    
+     
     GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO, divSSBO, residualSSBO, paramsSSBO;
     GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg;
     std::vector<float> Ad, direction, residual;
@@ -98,7 +99,6 @@ private:
 
     // HELPERS
     float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
-    void updateParticleBuffer();
 
     // GPU
     template<typename T> void initBuffer(int index, GLuint& ssbo, const std::vector<T>& data);

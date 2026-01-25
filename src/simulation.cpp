@@ -132,15 +132,6 @@ void Simulation::addParticle(glm::vec2 pos) {
     float rho = 0.03f * (float)rand()/RAND_MAX;
     glm::vec2 offset(cos(theta), sin(theta));
     particles.emplace_back(pos + rho * offset);
-
-    updateParticleBuffer();
-    
-    glUseProgram(p2gProg);
-    glUniform1i(glGetUniformLocation(p2gProg, "numParticles"), (int)particles.size());
-    glUseProgram(g2pProg);
-    glUniform1i(glGetUniformLocation(g2pProg, "numParticles"), (int)particles.size());
-    glUseProgram(classifyCellsProg);
-    glUniform1i(glGetUniformLocation(classifyCellsProg, "numParticles"), (int)particles.size());
 }
 
 
@@ -258,6 +249,13 @@ void Simulation::updateParticleBuffer() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, particleSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, particles.size() * sizeof(Particle), particles.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, particleSSBO); // Re-link to binding 0
+    
+    glUseProgram(p2gProg);
+    glUniform1i(glGetUniformLocation(p2gProg, "numParticles"), (int)particles.size());
+    glUseProgram(g2pProg);
+    glUniform1i(glGetUniformLocation(g2pProg, "numParticles"), (int)particles.size());
+    glUseProgram(classifyCellsProg);
+    glUniform1i(glGetUniformLocation(classifyCellsProg, "numParticles"), (int)particles.size());
 
 }
 
