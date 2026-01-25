@@ -18,7 +18,7 @@ void Simulation::p2g(float dt) {
     glUniform1f(glGetUniformLocation(normalizeProg, "dt"), dt);
     dispatchCompute(normalizeProg, ((size * (size+1)) + 255) / 256);
 
-    dispatchCompute(resetCellTypesProg, (size + 15) / 16, (size + 15) / 16);
+    dispatchCompute(resetCellTypesProg, NUM_GROUP_2D, NUM_GROUP_2D);
 
     dispatchCompute(classifyCellsProg, ((int)particles.size() + 255) / 256);
     getDataFromGPU(cellTypeSSBO, grid.cellType);
@@ -27,7 +27,7 @@ void Simulation::p2g(float dt) {
 void Simulation::computeDivergences(float dt) {
     glUseProgram(computeDivProg);
     glUniform1f(glGetUniformLocation(computeDivProg, "dt"), dt);
-    dispatchCompute(computeDivProg, (size + 15) / 16, (size + 15) / 16);
+    dispatchCompute(computeDivProg, NUM_GROUP_2D, NUM_GROUP_2D);
     getDataFromGPU(divSSBO, grid.divergence);
 }
 
@@ -36,9 +36,8 @@ void Simulation::solvePressure(float dt) {
     std::vector<float> b(grid.total_size, 0.0f);
 
     direction.assign(grid.total_size, 0.0f);   
-    Ad.assign(grid.total_size, 0.0f);   
-
-
+    Ad.assign(grid.total_size, 0.0f); 
+    params.reset();
 
     for (int k = 0; k < grid.total_size; k++) {
         if (grid.cellType[k] == CellType::FLUID) {
@@ -52,34 +51,55 @@ void Simulation::solvePressure(float dt) {
     // r_0 is b since p_0 = 0
     residual = b; 
     direction = residual;
-    
-    float deltaNew = dotProduct(residual, residual);
+
+    sendDataToGPU(residualSSBO, residual);
+    sendDataToGPU(pressureSSBO, grid.pressure);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
+
+    glUseProgram(dotProductProg);
+    glUniform1i(glGetUniformLocation(dotProductProg, "computeDelta"), 1);
+    dispatchCompute(dotProductProg, NUM_GROUP_1D);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
+
     float epsilon = 1e-6f;
     int maxIter = 100;
 
     for (int k = 0; k < maxIter; k++) {
-        if (deltaNew < epsilon)  {
-            if (dt >= 0.02f)
-            std::cout << "CG converged in " << k << " iterations. Residual: " << deltaNew << " Also dt = " << dt << std::endl;
-            break;
-        }
+        if (params.deltaNew < epsilon) break;
         
         sendDataToGPU(directionSSBO, direction);
-        dispatchCompute(applyAProg, (size + 15) / 16, (size + 15) / 16);
+        dispatchCompute(applyAProg, NUM_GROUP_2D, NUM_GROUP_2D);
         getDataFromGPU(adSSBO, Ad);
 
-        float dAd = dotProduct(direction, Ad);
-        float alpha = (dAd < 1e-6) ? 0.0f : (deltaNew / dAd);
+        // To be removed later
+        params.dAd = 0.0f;
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
 
-        for (int i = 0; i < grid.total_size; i++) {
-            grid.pressure[i] += alpha * direction[i];
-            residual[i] -= alpha * Ad[i];
-        }
+        glUseProgram(dotProductProg);
+        glUniform1i(glGetUniformLocation(dotProductProg, "computeDelta"), 0);
+        dispatchCompute(dotProductProg, NUM_GROUP_1D);
 
-        float deltaOld = deltaNew;
-        deltaNew = dotProduct(residual, residual);
+        dispatchCompute(transitionProg);
+        
+        sendDataToGPU(residualSSBO, residual);
 
-        float beta = (float)(deltaNew / deltaOld);
+        dispatchCompute(moveAlphaProg, NUM_GROUP_1D);
+
+        getDataFromGPU(residualSSBO, residual);
+
+        glUseProgram(dotProductProg);
+        glUniform1i(glGetUniformLocation(dotProductProg, "computeDelta"), 1);
+        dispatchCompute(dotProductProg, NUM_GROUP_1D);
+        
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
+
+
+        float beta = (float)(params.deltaNew / params.deltaOld);
 
         for (int i = 0; i < grid.total_size; i++) {
             direction[i] = residual[i] + beta * direction[i];
@@ -90,12 +110,10 @@ void Simulation::solvePressure(float dt) {
 void Simulation::applyPressure(float dt) {
     float K = dt / RHO / h;
 
-    sendDataToGPU(pressureSSBO, grid.pressure);
-
     glUseProgram(applyPressureProg);
     glUniform1f(glGetUniformLocation(applyPressureProg, "K"),K);
 
-    dispatchCompute(applyPressureProg, (size + 15) / 16, (size + 15) / 16); 
+    dispatchCompute(applyPressureProg, NUM_GROUP_2D, NUM_GROUP_2D); 
     // Theoretically i should also got to size+1 but since these are zero velocities, i don't care
 }
 
@@ -166,16 +184,27 @@ void Simulation::initGPU() {
     initBuffer(11, divSSBO, grid.divergence);
     initBuffer(12, residualSSBO, residual);
 
+    glGenBuffers(1, &paramsSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4*sizeof(float), &params, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, paramsSSBO);
+
     // Compile shaders
     p2gProg = createShaderProgram({{"shaders/computeP2G.glsl", ShaderType::COMPUTE}});
     normalizeProg = createShaderProgram({{"shaders/computeNormalizeAndApplyForces.glsl", ShaderType::COMPUTE}});
     resetCellTypesProg = createShaderProgram({{"shaders/computeResetCellTypes.glsl", ShaderType::COMPUTE}});
     classifyCellsProg = createShaderProgram({{"shaders/computeClassifyCells.glsl", ShaderType::COMPUTE}});
+
     computeDivProg = createShaderProgram({{"shaders/computeDiv.glsl", ShaderType::COMPUTE}});
-    applyPressureProg = createShaderProgram({{"shaders/computeApplyPressure.glsl", ShaderType::COMPUTE}});
-    DotProductProg = createShaderProgram({{"shaders/computeDotProduct.glsl", ShaderType::COMPUTE}});
+
+    dotProductProg = createShaderProgram({{"shaders/computeDotProduct.glsl", ShaderType::COMPUTE}});
+    moveAlphaProg = createShaderProgram({{"shaders/computeMoveGradientAlpha.glsl", ShaderType::COMPUTE}});
+    moveBetaProg = createShaderProgram({{"shaders/computeMoveGradientBeta.glsl", ShaderType::COMPUTE}});
+    transitionProg = createShaderProgram({{"shaders/computeTransition.glsl", ShaderType::COMPUTE}});
 
     applyAProg = createShaderProgram({{"shaders/computeApplyA.glsl", ShaderType::COMPUTE}});
+
+    applyPressureProg = createShaderProgram({{"shaders/computeApplyPressure.glsl", ShaderType::COMPUTE}});
     g2pProg = createShaderProgram({{"shaders/computeG2P.glsl", ShaderType::COMPUTE}});
 
 
@@ -205,6 +234,15 @@ void Simulation::initGPU() {
 
     glUseProgram(applyAProg);
     glUniform1i(glGetUniformLocation(applyAProg, "size"), size);
+    
+    glUseProgram(dotProductProg);
+    glUniform1i(glGetUniformLocation(dotProductProg, "size"), size);
+    
+    glUseProgram(moveAlphaProg);
+    glUniform1i(glGetUniformLocation(moveAlphaProg, "size"), size);
+    
+    glUseProgram(moveBetaProg);
+    glUniform1i(glGetUniformLocation(moveBetaProg, "size"), size);
 
     glUseProgram(g2pProg);
     glUniform1i(glGetUniformLocation(g2pProg, "size"), size);

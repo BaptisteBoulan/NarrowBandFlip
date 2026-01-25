@@ -84,15 +84,25 @@ void initShaders() {
 
 
 void render() {
-    GLuint colorLocation = glGetUniformLocation(particleShader, "color");
-
-    float lastTime = 0;
+    float lastTime = (float)glfwGetTime();
     float spawnTimer = 0;
+    float fpsTimer = 0;
+    int frameCount = 0;
+    int fps = 0;
 
     while (!glfwWindowShouldClose(window)) {
         float currentTime = (float)glfwGetTime();
         float dt = currentTime - lastTime;
         lastTime = currentTime;
+        frameCount++;
+
+        fpsTimer += dt;
+        if (fpsTimer >= 1.0f) {
+            fps = frameCount;
+            frameCount = 0;
+            fpsTimer = 0;
+            std::cout << "FPS: " << fps << std::endl;
+        }
 
 
         // --- MOUSE SPAWNING LOGIC ---
@@ -108,22 +118,11 @@ void render() {
         dt = std::min(dt, 0.02f);
         
         if (!paused) {
-            float lt = (float)glfwGetTime();
             sim.p2g(dt);
-            std::cout<<"p2g took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
-            lt = (float)glfwGetTime();
             sim.computeDivergences(dt);
-            std::cout<<"computeDivergences took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
-            lt = (float)glfwGetTime();
             sim.solvePressure(dt);
-            std::cout<<"solvePressure took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
-            lt = (float)glfwGetTime();
             sim.applyPressure(dt);
-            std::cout<<"applyPressure took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
-            lt = (float)glfwGetTime();
-            sim.g2p(dt);    
-            std::cout<<"g2p took "<<(int)(1000.0f * ((float)glfwGetTime()-lt))<<" ms"<<std::endl;
-            std::cout<<std::endl;
+            sim.g2p(dt);
         }
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -135,7 +134,6 @@ void render() {
         // Update only the data, don't reallocate the buffer
         glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
         glPointSize(5.0f);
-        glUniform1f(colorLocation, 0.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
         glfwSwapBuffers(window);

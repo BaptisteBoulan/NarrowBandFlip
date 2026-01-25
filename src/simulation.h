@@ -2,6 +2,27 @@
 #include "Grid.h"
 #include "Particle.h"
 
+struct SolverParams {
+    float dAd;
+    float deltaNew;
+    float deltaOld;
+    float alpha;
+
+    void reset() {
+        dAd = 0.0f;
+        deltaNew = 0.0f;
+        deltaOld = 0.0f;
+        alpha = 0.0f;
+    }
+    void print() {
+        std::cout<<"dAd : "<<dAd<<std::endl;
+        std::cout<<"deltaNew : "<<deltaNew<<std::endl;
+        std::cout<<"deltaOld : "<<deltaOld<<std::endl;
+        std::cout<<"alpha : "<<alpha<<std::endl;
+        std::cout<<std::endl;
+    }
+};
+
 class Simulation {
 public:
     int size;
@@ -42,7 +63,11 @@ public:
 
         Ad.assign(grid.total_size, 0.0f);
         direction.assign(grid.total_size, 0.0f);
-        dAd.assign(grid.total_size, 0.0f);
+        residual.assign(grid.total_size, 0.0f);
+
+        params = SolverParams({0,0,0,0});
+        NUM_GROUP_1D = (grid.total_size + 255) / 256;
+        NUM_GROUP_2D = (size + 16) / 16;
     }
 
     // STEPS
@@ -62,10 +87,14 @@ private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
     float ALPHA = 0.95f;
+    int NUM_GROUP_1D;
+    int NUM_GROUP_2D;
+
     
-    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO, divSSBO, residualSSBO;
-    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, DotProductProg;
-    std::vector<float> Ad, direction, dAd, residual;
+    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO, divSSBO, residualSSBO, paramsSSBO;
+    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg;
+    std::vector<float> Ad, direction, residual;
+    SolverParams params;
 
     // HELPERS
     float dotProduct(const std::vector<float>& a, const std::vector<float>& b);
