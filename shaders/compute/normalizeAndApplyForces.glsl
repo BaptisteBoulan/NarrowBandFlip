@@ -34,4 +34,5 @@ void main() {
 
     new_us[idx] = us[idx];
     new_vs[idx] = vs[idx] + gravity * dt;
+    new_ws[idx] = ws[idx];
 }

@@ -19,7 +19,7 @@ void Simulation::p2g(float dt) {
     // Normalize and apply gravity
     glUseProgram(normalizeProg);
     glUniform1f(glGetUniformLocation(normalizeProg, "dt"), dt);
-    dispatchCompute(normalizeProg, NUM_GROUP_1D);
+    dispatchCompute(normalizeProg, NUM_VELOCITIES);
 
     dispatchCompute(resetCellTypesProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 

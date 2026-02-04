@@ -39,9 +39,9 @@ public:
             }
         }
         // Init particles
-        glm::vec3 p1(0.6f, 0.05f, 0.4f);
-        glm::vec3 p2(0.95f, 0.95f, 0.6f);
-        float spacing = 0.5f / size;
+        glm::vec3 p1(0.4f, 0.2f, 0.4f);
+        glm::vec3 p2(0.6f, 0.8f, 0.6f);
+        float spacing = 0.1f / size;
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
@@ -55,6 +55,7 @@ public:
         residual.assign(grid.total_cells, 0.0f);
 
         params = SolverParams({0,0,0,0});
+        NUM_VELOCITIES = (size * size * (size+1) + 255) / 256;
         NUM_GROUP_1D = (grid.total_cells + 255) / 256;
         NUM_GROUP_2D = (size + 16) / 16;
         NUM_GROUP_3D = (size + 8) / 8;
@@ -80,6 +81,7 @@ private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
     float ALPHA = 0.95f;
+    int NUM_VELOCITIES;
     int NUM_GROUP_1D;
     int NUM_GROUP_2D;
     int NUM_GROUP_3D;

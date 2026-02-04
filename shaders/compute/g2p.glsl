@@ -64,8 +64,12 @@ void main() {
     for (int k = 0; k <= 1; k++) {
         for (int j = 0; j <= 1; j++) {
             for (int i = 0; i <= 1; i++) {
-                int index = getUIdx(ui + i, uj + j, uk + k);
-                if (index >= 0 && index < (size + 1) * size * size) {
+                int gx = ui + i;
+                int gy = uj + j;
+                int gz = uk + k;
+                
+                if (gx >= 0 && gx < size + 1 && gy >= 0 && gy < size && gz >= 0 && gz < size) {
+                    int index = getUIdx(gx, gy, gz);
                     float weight = (i == 0 ? (1.0 - uwx) : uwx) *
                                    (j == 0 ? (1.0 - uwy) : uwy) *
                                    (k == 0 ? (1.0 - uwz) : uwz);
@@ -100,8 +104,12 @@ void main() {
     for (int k = 0; k <= 1; k++) {
         for (int j = 0; j <= 1; j++) {
             for (int i = 0; i <= 1; i++) {
-                int index = getVIdx(vi + i, vj + j, vk + k);
-                if (index >= 0 && index < size * (size + 1) * size) {
+                int gx = vi + i;
+                int gy = vj + j;
+                int gz = vk + k;
+
+                if (gx >= 0 && gx < size && gy >= 0 && gy < size + 1 && gz >= 0 && gz < size) {
+                    int index = getVIdx(gx, gy, gz);
                     float weight = (i == 0 ? (1.0 - vwx) : vwx) *
                                    (j == 0 ? (1.0 - vwy) : vwy) *
                                    (k == 0 ? (1.0 - vwz) : vwz);
@@ -136,9 +144,12 @@ void main() {
     for (int k = 0; k <= 1; k++) {
         for (int j = 0; j <= 1; j++) {
             for (int i = 0; i <= 1; i++) {
-                int index = getWIdx(wi + i, wj + j, wk + k);
-                // Check bounds (W grid usually has size+1 in Z)
-                if (index >= 0 && index < size * size * (size + 1)) {
+                int gx = wi + i;
+                int gy = wj + j;
+                int gz = wk + k;
+                
+                if (gx >= 0 && gx < size && gy >= 0 && gy < size && gz >= 0 && gz < size + 1) {
+                    int index = getWIdx(gx, gy, gz);
                     float weight = (i == 0 ? (1.0 - wwx) : wwx) *
                                    (j == 0 ? (1.0 - wwy) : wwy) *
                                    (k == 0 ? (1.0 - wwz) : wwz);

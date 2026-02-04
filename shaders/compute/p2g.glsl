@@ -72,8 +72,13 @@ void main() {
                 float weight = (i == 0 ? 1.0 - uf.x : uf.x) *
                                (j == 0 ? 1.0 - uf.y : uf.y) *
                                (k == 0 ? 1.0 - uf.z : uf.z);
-                int gIdx = getUIdx(ui0.x + i, ui0.y + j, ui0.z + k);
-                if (gIdx >= 0 && gIdx < (size + 1) * size * size) {
+                
+                int gx = ui0.x + i;
+                int gy = ui0.y + j;
+                int gz = ui0.z + k;
+
+                if (gx >= 0 && gx < size + 1 && gy >= 0 && gy < size && gz >= 0 && gz < size) {
+                    int gIdx = getUIdx(gx, gy, gz);
                     atomicAddFloat(gIdx, weight * p.vel.x, 0);
                     atomicAddFloat(gIdx, weight, 3);
                 }
@@ -93,8 +98,13 @@ void main() {
                 float weight = (i == 0 ? 1.0 - vf.x : vf.x) *
                                (j == 0 ? 1.0 - vf.y : vf.y) *
                                (k == 0 ? 1.0 - vf.z : vf.z);
-                int gIdx = getVIdx(vi0.x + i, vi0.y + j, vi0.z + k);
-                if (gIdx >= 0 && gIdx < size * (size + 1) * size) {
+                
+                int gx = vi0.x + i;
+                int gy = vi0.y + j;
+                int gz = vi0.z + k;
+
+                if (gx >= 0 && gx < size && gy >= 0 && gy < size + 1 && gz >= 0 && gz < size) {
+                    int gIdx = getVIdx(gx, gy, gz);
                     atomicAddFloat(gIdx, weight * p.vel.y, 1);
                     atomicAddFloat(gIdx, weight, 4);
                 }
@@ -114,8 +124,13 @@ void main() {
                 float weight = (i == 0 ? 1.0 - wf.x : wf.x) *
                                (j == 0 ? 1.0 - wf.y : wf.y) *
                                (k == 0 ? 1.0 - wf.z : wf.z);
-                int gIdx = getWIdx(wi0.x + i, wi0.y + j, wi0.z + k);
-                if (gIdx >= 0 && gIdx < size * size * (size + 1)) {
+                
+                int gx = wi0.x + i;
+                int gy = wi0.y + j;
+                int gz = wi0.z + k;
+                
+                if (gx >= 0 && gx < size && gy >= 0 && gy < size && gz >= 0 && gz < size + 1) {
+                    int gIdx = getWIdx(gx, gy, gz);
                     atomicAddFloat(gIdx, weight * p.vel.z, 2);
                     atomicAddFloat(gIdx, weight, 5);
                 }

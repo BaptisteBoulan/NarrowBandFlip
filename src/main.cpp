@@ -17,7 +17,7 @@ float mouseX, mouseY;
 float SPAWN_RATE = 0.1f / simRes;
 
 // Camera
-Camera camera(glm::vec3(-0.6f, 0.5f, 2.0f)); 
+Camera camera(glm::vec3(-1.0f, 0.5f, 2.0f)); 
 float lastX = 400, lastY = 400; // Center of screen
 bool firstMouse = true;
 
@@ -34,7 +34,7 @@ float quadVertices[] = {
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_SPACE) paused = !paused;         // Pause/Play simulation
+        if (key == GLFW_KEY_P) paused = !paused;         // Pause/Play simulation
         if (key == GLFW_KEY_ENTER) { sim = Simulation(simRes); sim.initGPU(); } // Restart simulation
     }
 }
@@ -92,6 +92,8 @@ void initGL() {
 
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
+
+    glEnable(GL_DEPTH);
 
     // --- Particle Setup ---
     glGenVertexArrays(1, &particleVAO);
@@ -173,9 +175,13 @@ void render() {
             camera.ProcessKeyboard(LEFT, dt);
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             camera.ProcessKeyboard(RIGHT, dt);
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+            camera.ProcessKeyboard(UP, dt);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            camera.ProcessKeyboard(DOWN, dt);
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // PARTICLE DISPLAY
         glUseProgram(particleShader);

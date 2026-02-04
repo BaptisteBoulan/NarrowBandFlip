@@ -33,7 +33,7 @@ void main() {
         new_us[getUIdx(i, j, k)] = 0.0f;
         new_vs[getVIdx(i, j + 1, k)] = 0.0f;
         new_vs[getVIdx(i, j, k)] = 0.0f;
-        new_vs[getWIdx(i, j, k + 1)] = 0.0f;
-        new_vs[getWIdx(i, j, k)] = 0.0f;
+        new_ws[getWIdx(i, j, k + 1)] = 0.0f;
+        new_ws[getWIdx(i, j, k)] = 0.0f;
     }
 }
