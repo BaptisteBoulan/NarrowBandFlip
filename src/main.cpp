@@ -7,8 +7,7 @@ int simRes = 16;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
-GLuint quadVAO, quadVBO;
-GLuint particleShader, backgroundShader;
+GLuint particleShader;
 bool paused = true;
 
 // Mouse
@@ -54,34 +53,6 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     mouseY = 1.0f - ((float)ypos / height);
 }
 
-void initBackground() {
-    float quadVertices[] = {
-        // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
-
-    glGenVertexArrays(1, &quadVAO);
-
-    glGenBuffers(1, &quadVBO);
-
-    glBindVertexArray(quadVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-}
-
 void initGL() {
     glfwInit();
     window = glfwCreateWindow(800, 800, "Fluid Simulation", NULL, NULL);
@@ -105,9 +76,7 @@ void initGL() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
 
-
     sim.initGPU();
-    initBackground();
 }
 
 void initShaders() {
@@ -116,11 +85,6 @@ void initShaders() {
         {"shaders/particleFragment.glsl", ShaderType::FRAGMENT},
     };
     particleShader = createShaderProgram(particleShaders);
-
-    backgroundShader = createShaderProgram({
-        {"shaders/backgroundVertex.glsl", ShaderType::VERTEX},
-        {"shaders/backgroundFragment.glsl", ShaderType::FRAGMENT}
-    });
 }
 
 void render() {
@@ -148,7 +112,7 @@ void render() {
         if (leftMouseDown && !paused) {
             spawnTimer += dt;
             while (spawnTimer >= SPAWN_RATE) {
-                sim.addParticle(glm::vec3((float)mouseX, (float)mouseY, 0.5f));
+                sim.addParticle(glm::vec3((float)mouseX, 0.8f, (float)mouseY));
                 spawnTimer -= SPAWN_RATE;
             }
             sim.updateParticleBuffer();
@@ -194,12 +158,13 @@ void render() {
         glUniformMatrix4fv(glGetUniformLocation(particleShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
         glUniformMatrix4fv(glGetUniformLocation(particleShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(particleShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
+        glUniform1i(glGetUniformLocation(particleShader, "size"), sim.size);
+        
         glBindVertexArray(particleVAO);
         glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
 
-        glPointSize(2.0f);
+        glPointSize(4.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
         glfwSwapBuffers(window);
