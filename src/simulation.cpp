@@ -7,8 +7,11 @@
 void Simulation::p2g(float dt) {
     clearBuffer(uSSBO);
     clearBuffer(vSSBO);
+    clearBuffer(wSSBO);
+
     clearBuffer(uMassSSBO);
     clearBuffer(vMassSSBO);
+    clearBuffer(wMassSSBO);
 
     // Pass the particle velocies to the grid
     dispatchCompute(p2gProg, ((int)particles.size() + 255) / 256);
@@ -18,7 +21,7 @@ void Simulation::p2g(float dt) {
     glUniform1f(glGetUniformLocation(normalizeProg, "dt"), dt);
     dispatchCompute(normalizeProg, NUM_GROUP_1D);
 
-    dispatchCompute(resetCellTypesProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D);
+    dispatchCompute(resetCellTypesProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 
     dispatchCompute(classifyCellsProg, ((int)particles.size() + 255) / 256);
     getDataFromGPU(cellTypeSSBO, grid.cellType);
@@ -27,7 +30,7 @@ void Simulation::p2g(float dt) {
 void Simulation::computeDivergences(float dt) {
     glUseProgram(computeDivProg);
     glUniform1f(glGetUniformLocation(computeDivProg, "dt"), dt);
-    dispatchCompute(computeDivProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D);
+    dispatchCompute(computeDivProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
     getDataFromGPU(divSSBO, grid.divergence);
 }
 
@@ -70,7 +73,7 @@ void Simulation::solvePressure(float dt) {
 
     for (int k = 0; k < maxIter; k++) {
         // Compute Ad        
-        dispatchCompute(applyAProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D);
+        dispatchCompute(applyAProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 
         // Compute dAd
         glUseProgram(dotProductProg);
@@ -99,7 +102,7 @@ void Simulation::applyPressure(float dt) {
     glUseProgram(applyPressureProg);
     glUniform1f(glGetUniformLocation(applyPressureProg, "K"),K);
 
-    dispatchCompute(applyPressureProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D); 
+    dispatchCompute(applyPressureProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D); 
     // Theoretically i should also got to size+1 but since these are zero velocities, i don't care
 }
 
@@ -125,8 +128,10 @@ float Simulation::dotProduct(const std::vector<float>& a, const std::vector<floa
 void Simulation::addParticle(glm::vec3 pos) {
     int i = (int)(pos.x*size);
     int j = (int)(pos.y*size);
-    if (i<1 || i>=size-1 || j<1 || j>=size-1) return;
-    if (grid.cellType[grid.gridIdx(i,j)] == CellType::SOLID) return;
+    int k = (int)(pos.z*size);
+    if (i<1 || i>=size-1 || j<1 || j>=size-1 || k<1 || k>=size-1) return;
+    if (grid.cellType[grid.gridIdx(i,j,k)] == CellType::SOLID) return;
+    
 
     float theta = (float)(2 * M_PI * rand())/RAND_MAX;
     float rho = 0.03f * (float)rand()/RAND_MAX;

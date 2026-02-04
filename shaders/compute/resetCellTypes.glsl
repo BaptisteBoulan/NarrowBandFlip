@@ -1,6 +1,6 @@
 #version 430 core
 
-layout(local_size_x = 16, local_size_y = 8, local_size_z = 8) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(std430, binding = 7) coherent buffer NewUBuffer { float new_us[]; };
 layout(std430, binding = 8) coherent buffer NewVBuffer { float new_vs[]; };

@@ -3,7 +3,7 @@
 #include "camera.h"
 
 // Global State
-int simRes = 32;
+int simRes = 16;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
@@ -17,7 +17,7 @@ float mouseX, mouseY;
 float SPAWN_RATE = 0.1f / simRes;
 
 // Camera
-Camera camera(glm::vec3(-0.6f, 0.5f, 1.0f)); 
+Camera camera(glm::vec3(-0.6f, 0.5f, 2.0f)); 
 float lastX = 400, lastY = 400; // Center of screen
 bool firstMouse = true;
 
@@ -146,7 +146,7 @@ void render() {
         if (leftMouseDown && !paused) {
             spawnTimer += dt;
             while (spawnTimer >= SPAWN_RATE) {
-                sim.addParticle(glm::vec3((float)mouseX, (float)mouseY, 0.2f));
+                sim.addParticle(glm::vec3((float)mouseX, (float)mouseY, 0.5f));
                 spawnTimer -= SPAWN_RATE;
             }
             sim.updateParticleBuffer();

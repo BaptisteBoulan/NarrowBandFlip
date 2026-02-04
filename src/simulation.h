@@ -39,8 +39,8 @@ public:
             }
         }
         // Init particles
-        glm::vec3 p1(0.6f, 0.05f, 0.01f);
-        glm::vec3 p2(0.95f, 0.95f, 0.3f);
+        glm::vec3 p1(0.6f, 0.05f, 0.4f);
+        glm::vec3 p2(0.95f, 0.95f, 0.6f);
         float spacing = 0.5f / size;
 
         for(float x = p1.x; x < p2.x; x += spacing) {

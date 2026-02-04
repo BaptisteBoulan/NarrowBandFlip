@@ -3,16 +3,16 @@
 layout(local_size_x = 256) in;
 
 struct Particle {
-    vec3 pos;
-    vec3 vel;
+    vec4 pos;
+    vec4 vel;
 };
 
 // Buffers
 layout(std430, binding = 0) buffer ParticleBuffer { Particle particles[]; };
 
-layout(std430, binding = 1) coherent buffer UBuffer { uint us[]; };
-layout(std430, binding = 2) coherent buffer VBuffer { uint vs[]; };
-layout(std430, binding = 3) coherent buffer WBuffer { uint ws[]; };
+layout(std430, binding = 1) coherent buffer UBuffer { float us[]; };
+layout(std430, binding = 2) coherent buffer VBuffer { float vs[]; };
+layout(std430, binding = 3) coherent buffer WBuffer { float ws[]; };
 
 layout(std430, binding = 7) coherent buffer NewUBuffer { float new_us[]; };
 layout(std430, binding = 8) coherent buffer NewVBuffer { float new_vs[]; };
@@ -71,7 +71,7 @@ void main() {
                                    (k == 0 ? (1.0 - uwz) : uwz);
                     
                     float new_val = new_us[index];
-                    float old_val = us[index]; // Note: Ensure 'us' buffer contains floats or use uintbitsToFloat if strictly uint buffer
+                    float old_val = us[index];
                     
                     pic_u += new_val * weight;
                     flip_u += (new_val - old_val) * weight;

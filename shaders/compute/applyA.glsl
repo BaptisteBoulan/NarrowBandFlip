@@ -1,6 +1,6 @@
 #version 430 core
 
-layout(local_size_x = 16, local_size_y = 8, local_size_z = 8) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(std430, binding = 10) buffer CellTypeBuffer { int cellType[]; };
 layout(std430, binding = 14) buffer DirectionBuffer { float direction[]; };
@@ -13,7 +13,7 @@ int gridIdx(int x, int y, int z) {return z * size * size + y * size + x;}
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int j = int(gl_GlobalInvocationID.y);
-    int k = int(gl_GlobalInvocationID.y);
+    int k = int(gl_GlobalInvocationID.z);
 
     if (i >= size || j >= size || k >= size) return;
 

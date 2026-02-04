@@ -14,7 +14,7 @@ layout(std430, binding = 10) coherent buffer CellType   { uint cellType[]; };
 uniform int size;
 uniform int numParticles;
 
-int gridIdx(int x, int y, int z) {return z * size *size + y * size + x;}
+int gridIdx(int x, int y, int z) {return z * size * size + y * size + x;}
 
 void main() {
 
