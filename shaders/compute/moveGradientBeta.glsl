@@ -19,7 +19,7 @@ uniform int size;
 
 void main() {
     int idx = int(gl_GlobalInvocationID.x);
-    if (idx >= size*size) return;
+    if (idx >= size*size*size) return;
 
     float beta = (params.deltaOld > 1e-10) ? params.deltaNew / params.deltaOld : 0.0;
     direction[idx] = residual[idx] + beta * direction[idx];

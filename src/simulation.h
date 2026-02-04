@@ -30,7 +30,7 @@ public:
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 for (int k = 0; k < size; k++) {
-                    if (i == 0 || i == size - 1 || j == 0 || j == size - 1 || k == -1 || k == size - 1) {
+                    if (i == 0 || i == size - 1 || j == 0 || j == size - 1 || k == 0 || k == size - 1) {
                         grid.cellType[grid.gridIdx(i, j, k)] = CellType::SOLID;
                     } else {
                         grid.cellType[grid.gridIdx(i, j, k)] = CellType::AIR;

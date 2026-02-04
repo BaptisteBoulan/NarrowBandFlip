@@ -28,8 +28,7 @@ shared float sharedData[256];
 void main() {
     uint gIdx = gl_GlobalInvocationID.x;
     uint lIdx = gl_LocalInvocationIndex;
-    int totalElements = (computeDelta == 0) ? size * size * size : size * size;
-    // int totalElements = size * size * size;
+    int totalElements = size * size * size;
 
     float val = 0.0;
     if (gIdx < totalElements) {

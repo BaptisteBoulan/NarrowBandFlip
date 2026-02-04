@@ -16,7 +16,7 @@ void Simulation::p2g(float dt) {
     // Normalize and apply gravity
     glUseProgram(normalizeProg);
     glUniform1f(glGetUniformLocation(normalizeProg, "dt"), dt);
-    dispatchCompute(normalizeProg, ((size * (size+1)) + 255) / 256);
+    dispatchCompute(normalizeProg, NUM_GROUP_1D);
 
     dispatchCompute(resetCellTypesProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D);
 
@@ -64,14 +64,13 @@ void Simulation::solvePressure(float dt) {
     dispatchCompute(dotProductProg, NUM_GROUP_1D);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
-    std::cout<<params.deltaNew<<std::endl;
 
     float epsilon = 1e-6f;
     int maxIter = 100;
 
     for (int k = 0; k < maxIter; k++) {
         // Compute Ad        
-        dispatchCompute(applyAProg, NUM_GROUP_2D, NUM_GROUP_2D);
+        dispatchCompute(applyAProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D);
 
         // Compute dAd
         glUseProgram(dotProductProg);
@@ -100,7 +99,7 @@ void Simulation::applyPressure(float dt) {
     glUseProgram(applyPressureProg);
     glUniform1f(glGetUniformLocation(applyPressureProg, "K"),K);
 
-    dispatchCompute(applyPressureProg, NUM_GROUP_2D, NUM_GROUP_2D); 
+    dispatchCompute(applyPressureProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D); 
     // Theoretically i should also got to size+1 but since these are zero velocities, i don't care
 }
 

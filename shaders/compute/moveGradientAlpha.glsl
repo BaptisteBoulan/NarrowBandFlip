@@ -19,7 +19,7 @@ uniform int size;
 
 void main() {
     int idx = int(gl_GlobalInvocationID.x);
-    if (idx >= size*size) return;
+    if (idx >= size*size*size) return;
     
     pressure[idx] += params.alpha * direction[idx];
     residual[idx] -= params.alpha * Ad[idx];
