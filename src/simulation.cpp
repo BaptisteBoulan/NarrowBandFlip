@@ -18,7 +18,7 @@ void Simulation::p2g(float dt) {
     glUniform1f(glGetUniformLocation(normalizeProg, "dt"), dt);
     dispatchCompute(normalizeProg, ((size * (size+1)) + 255) / 256);
 
-    dispatchCompute(resetCellTypesProg, NUM_GROUP_2D, NUM_GROUP_2D);
+    dispatchCompute(resetCellTypesProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D);
 
     dispatchCompute(classifyCellsProg, ((int)particles.size() + 255) / 256);
     getDataFromGPU(cellTypeSSBO, grid.cellType);

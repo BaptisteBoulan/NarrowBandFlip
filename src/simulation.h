@@ -54,7 +54,7 @@ public:
         params = SolverParams({0,0,0,0});
         NUM_GROUP_1D = (grid.total_cells + 255) / 256;
         NUM_GROUP_2D = (size + 16) / 16;
-        NUM_GROUP_2D = (size + 8) / 8;
+        NUM_GROUP_3D = (size + 8) / 8;
 
         std::cout<<particles.size()<<std::endl;
     }
@@ -79,6 +79,7 @@ private:
     float ALPHA = 0.95f;
     int NUM_GROUP_1D;
     int NUM_GROUP_2D;
+    int NUM_GROUP_3D;
 
      
     GLuint particleSSBO;

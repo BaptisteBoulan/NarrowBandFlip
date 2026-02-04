@@ -1,33 +1,39 @@
 #version 430 core
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 16, local_size_y = 8, local_size_z = 8) in;
 
 layout(std430, binding = 7) coherent buffer NewUBuffer { float new_us[]; };
 layout(std430, binding = 8) coherent buffer NewVBuffer { float new_vs[]; };
+layout(std430, binding = 9) coherent buffer NewWBuffer { float new_ws[]; };
 layout(std430, binding = 10) coherent buffer CellType   { uint cellType[]; };
 
 uniform int size;
 
 int gridIdx(int x, int y, int z) {return z * size *size + y * size + x;}
-int uIdx(int i, int j) { return j * (size+1) + i; }
-int vIdx(int i, int j) { return j * size + i; }
+
+int getUIdx(int i, int j, int k) { return k * size * (size + 1) + j * (size + 1) + i; }
+int getVIdx(int i, int j, int k) { return k * (size + 1) * size + j * size + i; }
+int getWIdx(int i, int j, int k) { return k * size * size + j * size + i; }
 
 void main() {
 
     int i = int(gl_GlobalInvocationID.x);
     int j = int(gl_GlobalInvocationID.y);
+    int k = int(gl_GlobalInvocationID.z);
 
-    if (i >= size || j >= size) return;
+    if (i >= size || j >= size || k >= size ) return;
 
-    int cellIdx = gridIdx(i,j,0);
+    int cellIdx = gridIdx(i,j,k);
 
     int type = int(cellType[cellIdx]);
 
     if (type != 0) cellType[cellIdx] = 1; // If not SOLID then AIR
     else {
-        new_us[uIdx(i + 1, j)] = 0.0f;
-        new_us[uIdx(i, j)] = 0.0f;
-        new_vs[vIdx(i, j + 1)] = 0.0f;
-        new_vs[vIdx(i, j)] = 0.0f;
+        new_us[getUIdx(i + 1, j, k)] = 0.0f;
+        new_us[getUIdx(i, j, k)] = 0.0f;
+        new_vs[getVIdx(i, j + 1, k)] = 0.0f;
+        new_vs[getVIdx(i, j, k)] = 0.0f;
+        new_vs[getWIdx(i, j, k + 1)] = 0.0f;
+        new_vs[getWIdx(i, j, k)] = 0.0f;
     }
 }
