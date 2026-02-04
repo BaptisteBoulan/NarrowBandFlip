@@ -8,7 +8,7 @@ layout(std430, binding = 10) buffer DirectionBuffer { float direction[]; };
 
 uniform int size;
 
-int gridIdx(int i, int j) {return j * size + i;}
+int gridIdx(int x, int y, int z) {return z * size *size + y * size + x;}
 
 void main() {
     int i = int(gl_GlobalInvocationID.x);
@@ -17,7 +17,7 @@ void main() {
     if (i >= size || j >= size) return;
 
 
-    int idx = gridIdx(i,j);
+    int idx = gridIdx(i,j,0);
 
     if (cellType[idx] != 2) {
         Ad[idx] = 0.0f;
@@ -35,7 +35,7 @@ void main() {
         int curJ = nj[k];
         // Boundary check
         if (curI >= 0 && curI < size && curJ >= 0 && curJ < size) {
-            int nIdx = gridIdx(curI, curJ);
+            int nIdx = gridIdx(curI, curJ, 0);
 
             if (cellType[nIdx] != 0) {
                 neighborsCount++;

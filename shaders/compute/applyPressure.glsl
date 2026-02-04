@@ -10,7 +10,7 @@ layout (std430, binding = 8) coherent buffer CellTypeBuffer { uint[] cellType; }
 uniform int size;
 uniform float K;
 
-int getIdx(int i, int j) { return j * size + i; }
+int gridIdx(int x, int y, int z) {return z * size *size + y * size + x;}
 int uIdx(int i, int j) { return j * (size+1) + i; }
 int vIdx(int i, int j) { return j * size + i; }
 
@@ -22,8 +22,8 @@ void main() {
 
     // U VELOCITY
 
-    int idxLeft = getIdx(i - 1, j);
-    int idxRight = getIdx(i, j);
+    int idxLeft = gridIdx(i - 1, j, 0);
+    int idxRight = gridIdx(i, j, 0);
     int uIdx = uIdx(i, j);
 
     if ((cellType[idxLeft] == 2 || cellType[idxRight] == 2) &&
@@ -39,8 +39,8 @@ void main() {
     i = j;
     j = k;
 
-    int idxBot = getIdx(i, j - 1);
-    int idxTop = getIdx(i, j);
+    int idxBot = gridIdx(i, j - 1, 0);
+    int idxTop = gridIdx(i, j, 0);
     int vIdx = vIdx(i, j);
 
     if ((cellType[idxBot] == 2 || cellType[idxTop] == 2) &&

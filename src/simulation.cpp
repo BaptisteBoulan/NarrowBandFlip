@@ -32,14 +32,14 @@ void Simulation::computeDivergences(float dt) {
 }
 
 void Simulation::solvePressure(float dt) {
-    std::vector<float> residual(grid.total_size, 0.0f);
-    std::vector<float> b(grid.total_size, 0.0f);
+    std::vector<float> residual(grid.total_cells, 0.0f);
+    std::vector<float> b(grid.total_cells, 0.0f);
 
-    direction.assign(grid.total_size, 0.0f);   
-    Ad.assign(grid.total_size, 0.0f); 
+    direction.assign(grid.total_cells, 0.0f);   
+    Ad.assign(grid.total_cells, 0.0f); 
     params.reset();
 
-    for (int k = 0; k < grid.total_size; k++) {
+    for (int k = 0; k < grid.total_cells; k++) {
         if (grid.cellType[k] == CellType::FLUID) {
             b[k] = -h * h * grid.divergence[k];
         } else {

@@ -22,9 +22,9 @@ uniform float h;
 uniform float alpha;
 
 // Indexing helpers matching the CPU logic
+int gridIdx(int x, int y, int z) {return z * size *size + y * size + x;}
 int getUIdx(int i, int j) { return j * (size + 1) + i; }
 int getVIdx(int i, int j) { return j * size + i; }
-int gridIdx(int i, int j) { return j * size + i; }
 
 
 void main() {
@@ -110,17 +110,17 @@ void main() {
     cellX = max(0, min(size - 1, cellX));
     cellY = max(0, min(size - 1, cellY));
 
-    if (cellType[gridIdx(cellX, cellY)] == 0) {
+    if (cellType[gridIdx(cellX, cellY, 0)] == 0) {
         float cellMinX = cellX / size;
         float cellMaxX = (cellX + 1) / size;
         float cellMinY = cellY / size;
         float cellMaxY = (cellY + 1) / size;
 
         // The 2.0f is a safety to ensure the particle does not try to get out of the box
-        float distLeft   = (p.pos.x < h        || cellType[gridIdx(cellX-1, cellY)] == 0) ? 2.0f : p.pos.x - cellMinX;
-        float distRight  = (p.pos.x > 1.0f - h || cellType[gridIdx(cellX+1, cellY)] == 0) ? 2.0f : cellMaxX - p.pos.x;
-        float distBottom = (p.pos.y < h        || cellType[gridIdx(cellX, cellY-1)] == 0) ? 2.0f : p.pos.y - cellMinY;
-        float distTop    = (p.pos.y > 1.0f - h || cellType[gridIdx(cellX, cellY+1)] == 0) ? 2.0f : cellMaxY - p.pos.y;
+        float distLeft   = (p.pos.x < h        || cellType[gridIdx(cellX-1, cellY, 0)] == 0) ? 2.0f : p.pos.x - cellMinX;
+        float distRight  = (p.pos.x > 1.0f - h || cellType[gridIdx(cellX+1, cellY, 0)] == 0) ? 2.0f : cellMaxX - p.pos.x;
+        float distBottom = (p.pos.y < h        || cellType[gridIdx(cellX, cellY-1, 0)] == 0) ? 2.0f : p.pos.y - cellMinY;
+        float distTop    = (p.pos.y > 1.0f - h || cellType[gridIdx(cellX, cellY+1, 0)] == 0) ? 2.0f : cellMaxY - p.pos.y;
 
         float minDist = distLeft;
         int side = 0;

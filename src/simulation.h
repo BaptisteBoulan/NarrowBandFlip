@@ -14,13 +14,6 @@ struct SolverParams {
         deltaOld = 0.0f;
         alpha = 0.0f;
     }
-    void print() {
-        std::cout<<"dAd : "<<dAd<<std::endl;
-        std::cout<<"deltaNew : "<<deltaNew<<std::endl;
-        std::cout<<"deltaOld : "<<deltaOld<<std::endl;
-        std::cout<<"alpha : "<<alpha<<std::endl;
-        std::cout<<std::endl;
-    }
 };
 
 class Simulation {
@@ -43,13 +36,6 @@ public:
                 }
             }
         }
-
-        for (int i = size / 2 - 5; i <= size / 2 + 5; i++) {
-            for (int j = size / 4 - 5; j <= size / 4 + 5; j++) {
-                grid.cellType[grid.gridIdx(i, j)] = CellType::SOLID;
-            }
-        }
-
         // Init particles
         glm::vec2 p1(0.6f, 0.05f);
         glm::vec2 p2(0.95f, 0.95f);
@@ -61,12 +47,12 @@ public:
             }
         }
 
-        Ad.assign(grid.total_size, 0.0f);
-        direction.assign(grid.total_size, 0.0f);
-        residual.assign(grid.total_size, 0.0f);
+        Ad.assign(grid.total_cells, 0.0f);
+        direction.assign(grid.total_cells, 0.0f);
+        residual.assign(grid.total_cells, 0.0f);
 
         params = SolverParams({0,0,0,0});
-        NUM_GROUP_1D = (grid.total_size + 255) / 256;
+        NUM_GROUP_1D = (grid.total_cells + 255) / 256;
         NUM_GROUP_2D = (size + 16) / 16;
 
         std::cout<<particles.size()<<std::endl;

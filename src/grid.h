@@ -9,40 +9,48 @@ enum class CellType {
 
 class Grid {
 public:
-    int size, total_size;
+    int size;
+    int total_cells;
+
+    // Cell-centered data
     std::vector<float> pressure;
     std::vector<float> divergence;
-
-    std::vector<float> us; // horizontal velocities
-    std::vector<float> vs; // vertical velocities
-
-    std::vector<float> new_us; // horizontal velocities
-    std::vector<float> new_vs; // vertical velocities
-
-    std::vector<float> uMasses; // horizontal masses
-    std::vector<float> vMasses; // vertical masses
-
-    std::vector<glm::vec2> interpolatedVelocities; // Interpolated velocities in the middle of each cell for debug purpose
-
     std::vector<CellType> cellType;
 
+    // Face-centered velocities (Staggered)
+    std::vector<float> us, new_us, uMasses;
+    std::vector<float> vs, new_vs, vMasses;
+    std::vector<float> ws, new_ws, wMasses;
 
     Grid(int size) : size(size) {
-        total_size = size * size;
+        total_cells = size * size * size;
 
-        pressure.resize(total_size, 0.0f);
-        divergence.resize(total_size, 0.0f);
-        us.resize(total_size + size, 0.0f);
-        vs.resize(total_size + size, 0.0f);
-        new_us.resize(total_size + size, 0.0f);
-        new_vs.resize(total_size + size, 0.0f);
-        uMasses.resize(total_size + size, 0.0f);
-        vMasses.resize(total_size + size, 0.0f);
-        interpolatedVelocities.resize(total_size, glm::vec2(0.0f));
-        cellType.resize(total_size, CellType::AIR);
+        pressure.resize(total_cells, 0.0f);
+        divergence.resize(total_cells, 0.0f);
+        cellType.resize(total_cells, CellType::AIR);
+
+        int uCount = (size + 1) * size * size;
+        int vCount = size * (size + 1) * size;
+        int wCount = size * size * (size + 1);
+
+        us.resize(uCount, 0.0f); new_us.resize(uCount, 0.0f); uMasses.resize(uCount, 0.0f);
+        vs.resize(vCount, 0.0f); new_vs.resize(vCount, 0.0f); vMasses.resize(vCount, 0.0f);
+        ws.resize(wCount, 0.0f); new_ws.resize(wCount, 0.0f); wMasses.resize(wCount, 0.0f);
     }
-    
-    int gridIdx(int x, int y) const { return y * size + x; }
-    int uIdx(int x, int y) const { return y * (size + 1) + x; }
-    int vIdx(int x, int y) const { return y * size + x; }
+
+    int gridIdx(int x, int y, int z = 0) const { 
+        return (z * size * size) + (y * size) + x; 
+    }
+
+    int uIdx(int x, int y, int z = 0) const { 
+        return (z * size * (size + 1)) + (y * (size + 1)) + x; 
+    }
+
+    int vIdx(int x, int y, int z = 0) const { 
+        return (z * (size + 1) * size) + (y * size) + x; 
+    }
+
+    int wIdx(int x, int y, int z = 0) const { 
+        return (z * size * size) + (y * size) + x; 
+    }
 };

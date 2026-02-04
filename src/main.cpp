@@ -3,7 +3,7 @@
 #include "camera.h"
 
 // Global State
-int simRes = 64;
+int simRes = 32;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;

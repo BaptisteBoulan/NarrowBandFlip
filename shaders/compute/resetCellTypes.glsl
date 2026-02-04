@@ -8,7 +8,7 @@ layout(std430, binding = 8) coherent buffer CellType   { uint cellType[]; };
 
 uniform int size;
 
-int getIdx(int i, int j) { return j * size + i; }
+int gridIdx(int x, int y, int z) {return z * size *size + y * size + x;}
 int uIdx(int i, int j) { return j * (size+1) + i; }
 int vIdx(int i, int j) { return j * size + i; }
 
@@ -19,7 +19,7 @@ void main() {
 
     if (i >= size || j >= size) return;
 
-    int cellIdx = getIdx(i,j);
+    int cellIdx = gridIdx(i,j,0);
 
     int type = int(cellType[cellIdx]);
 
