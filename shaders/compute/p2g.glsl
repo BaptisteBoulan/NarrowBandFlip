@@ -7,102 +7,119 @@ struct Particle {
     vec4 vel;
 };
 
-// Buffers
 layout(std430, binding = 0) buffer ParticleBuffer { Particle particles[]; };
-layout(std430, binding = 1) coherent buffer UBuffer         { uint us[]; };
-layout(std430, binding = 2) coherent buffer VBuffer         { uint vs[]; };
-layout(std430, binding = 4) coherent buffer UMassBuffer    { uint uMasses[]; };
-layout(std430, binding = 5) coherent buffer VMassBuffer    { uint vMasses[]; };
+
+// Velocity Buffers
+layout(std430, binding = 1) coherent buffer UBuffer { uint us[]; };
+layout(std430, binding = 2) coherent buffer VBuffer { uint vs[]; };
+layout(std430, binding = 3) coherent buffer WBuffer { uint ws[]; };
+
+// Mass/Weight Buffers
+layout(std430, binding = 4) coherent buffer UMassBuffer { uint uMasses[]; };
+layout(std430, binding = 5) coherent buffer VMassBuffer { uint vMasses[]; };
+layout(std430, binding = 6) coherent buffer WMassBuffer { uint wMasses[]; };
 
 uniform int size;
 uniform int numParticles;
 
-// Helper to perform atomic addition on floats using uint buffers
 void atomicAddFloat(uint index, float val, int bufferType) {
     uint expectedVal, newVal, oldVal;
     
-    // We must initialize 'oldVal' by reading the current state of the buffer
+    // Select the correct buffer based on type
     if (bufferType == 0)      oldVal = us[index];
     else if (bufferType == 1) oldVal = vs[index];
-    else if (bufferType == 2) oldVal = uMasses[index];
-    else                      oldVal = vMasses[index];
+    else if (bufferType == 2) oldVal = ws[index];
+    else if (bufferType == 3) oldVal = uMasses[index];
+    else if (bufferType == 4) oldVal = vMasses[index];
+    else                      oldVal = wMasses[index];
 
     do {
         expectedVal = oldVal;
-        // Convert bits to float, add, then convert back to uint bits
         float currentFloatVal = uintBitsToFloat(expectedVal);
         newVal = floatBitsToUint(currentFloatVal + val);
         
-        // atomicCompSwap returns the value that was in memory BEFORE the operation
         if (bufferType == 0)      oldVal = atomicCompSwap(us[index], expectedVal, newVal);
         else if (bufferType == 1) oldVal = atomicCompSwap(vs[index], expectedVal, newVal);
-        else if (bufferType == 2) oldVal = atomicCompSwap(uMasses[index], expectedVal, newVal);
-        else                      oldVal = atomicCompSwap(vMasses[index], expectedVal, newVal);
+        else if (bufferType == 2) oldVal = atomicCompSwap(ws[index], expectedVal, newVal);
+        else if (bufferType == 3) oldVal = atomicCompSwap(uMasses[index], expectedVal, newVal);
+        else if (bufferType == 4) oldVal = atomicCompSwap(vMasses[index], expectedVal, newVal);
+        else                      oldVal = atomicCompSwap(wMasses[index], expectedVal, newVal);
 
-    } while (oldVal != expectedVal); // If someone else changed it, try again
+    } while (oldVal != expectedVal);
 }
 
-// Indexing helpers matching the CPU logic
-int getUIdx(int i, int j) { return j * (size + 1) + i; }
-int getVIdx(int i, int j) { return j * size + i; }
+// 3D Staggered Grid Indexing
+int getUIdx(int i, int j, int k) { return k * size * (size + 1) + j * (size + 1) + i; }
+int getVIdx(int i, int j, int k) { return k * (size + 1) * size + j * size + i; }
+int getWIdx(int i, int j, int k) { return k * size * size + j * size + i; }
 
 void main() {
-
     uint idx = gl_GlobalInvocationID.x;
     if (idx >= numParticles) return;
 
     Particle p = particles[idx];
+    vec3 pPos = p.pos.xyz * float(size);
 
-    float px = p.pos.x * size;
-    float py = p.pos.y * size;
+    // --- Transfer U (X-velocity) ---
+    // Staggered: centered at (i, j+0.5, k+0.5)
+    vec3 uPos = vec3(pPos.x, pPos.y - 0.5, pPos.z - 0.5);
+    ivec3 ui0 = ivec3(floor(uPos));
+    vec3 uf = uPos - vec3(ui0);
 
-    // U-VELOCITIES
-    float ux = px;
-    float uy = py - 0.5f;
-    
-    int ui = int(ux);
-    int uj = int(uy);
-    float uwx = ux - ui;
-    float uwy = uy - uj;
-
-    // Bilinear weights for U
-    float weights_u[4] = {
-        (1 - uwx) * (1 - uwy), // (i, j)
-        uwx * (1 - uwy),       // (i+1, j)
-        (1 - uwx) * uwy,       // (i, j+1)
-        uwx * uwy              // (i+1, j+1)
-    };
-
-    // Transfer U
-    int u_indices[4] = { getUIdx(ui, uj), getUIdx(ui+1, uj), getUIdx(ui, uj+1), getUIdx(ui+1, uj+1) };
-    for(int k=0; k<4; ++k) {
-        if (u_indices[k] < 0 || u_indices[k] >= size*(size+1)) continue;
-        atomicAddFloat(u_indices[k], weights_u[k] * p.vel.x, 0);
-        atomicAddFloat(u_indices[k], weights_u[k], 2);
+    for (int k = 0; k <= 1; ++k) {
+        for (int j = 0; j <= 1; ++j) {
+            for (int i = 0; i <= 1; ++i) {
+                float weight = (i == 0 ? 1.0 - uf.x : uf.x) *
+                               (j == 0 ? 1.0 - uf.y : uf.y) *
+                               (k == 0 ? 1.0 - uf.z : uf.z);
+                int gIdx = getUIdx(ui0.x + i, ui0.y + j, ui0.z + k);
+                if (gIdx >= 0 && gIdx < (size + 1) * size * size) {
+                    atomicAddFloat(gIdx, weight * p.vel.x, 0);
+                    atomicAddFloat(gIdx, weight, 3);
+                }
+            }
+        }
     }
 
-    // V-VELOCITIES
-    float vx = px - 0.5f;
-    float vy = py;
+    // --- Transfer V (Y-velocity) ---
+    // Staggered: centered at (i+0.5, j, k+0.5)
+    vec3 vPos = vec3(pPos.x - 0.5, pPos.y, pPos.z - 0.5);
+    ivec3 vi0 = ivec3(floor(vPos));
+    vec3 vf = vPos - vec3(vi0);
 
-    int vi = int(vx);
-    int vj = int(vy);
-    float vwx = vx - vi;
-    float vwy = vy - vj;
+    for (int k = 0; k <= 1; ++k) {
+        for (int j = 0; j <= 1; ++j) {
+            for (int i = 0; i <= 1; ++i) {
+                float weight = (i == 0 ? 1.0 - vf.x : vf.x) *
+                               (j == 0 ? 1.0 - vf.y : vf.y) *
+                               (k == 0 ? 1.0 - vf.z : vf.z);
+                int gIdx = getVIdx(vi0.x + i, vi0.y + j, vi0.z + k);
+                if (gIdx >= 0 && gIdx < size * (size + 1) * size) {
+                    atomicAddFloat(gIdx, weight * p.vel.y, 1);
+                    atomicAddFloat(gIdx, weight, 4);
+                }
+            }
+        }
+    }
 
-    // Bilinear weights for V
-    float weights_v[4] = {
-        (1 - vwx) * (1 - vwy), // (i, j)
-        vwx * (1 - vwy),       // (i+1, j)
-        (1 - vwx) * vwy,       // (i, j+1)
-        vwx * vwy              // (i+1, j+1)
-    };
+    // --- Transfer W (Z-velocity) ---
+    // Staggered: centered at (i+0.5, j+0.5, k)
+    vec3 wPos = vec3(pPos.x - 0.5, pPos.y - 0.5, pPos.z);
+    ivec3 wi0 = ivec3(floor(wPos));
+    vec3 wf = wPos - vec3(wi0);
 
-    // Transfer V
-    int v_indices[4] = { getVIdx(vi, vj), getVIdx(vi+1, vj), getVIdx(vi, vj+1), getVIdx(vi+1, vj+1) };
-    for(int k=0; k<4; ++k) {
-        if (v_indices[k] < 0 || v_indices[k] >= size*(size+1)) continue;
-        atomicAddFloat(v_indices[k], weights_v[k] * p.vel.y, 1);
-        atomicAddFloat(v_indices[k], weights_v[k], 3);
+    for (int k = 0; k <= 1; ++k) {
+        for (int j = 0; j <= 1; ++j) {
+            for (int i = 0; i <= 1; ++i) {
+                float weight = (i == 0 ? 1.0 - wf.x : wf.x) *
+                               (j == 0 ? 1.0 - wf.y : wf.y) *
+                               (k == 0 ? 1.0 - wf.z : wf.z);
+                int gIdx = getWIdx(wi0.x + i, wi0.y + j, wi0.z + k);
+                if (gIdx >= 0 && gIdx < size * size * (size + 1)) {
+                    atomicAddFloat(gIdx, weight * p.vel.z, 2);
+                    atomicAddFloat(gIdx, weight, 5);
+                }
+            }
+        }
     }
 }
