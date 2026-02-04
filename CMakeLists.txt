@@ -39,6 +39,7 @@ add_executable(renderze
     src/shader.cpp
     src/simulation.h
     src/simulation.cpp
+    src/camera.cpp
     
     )
 

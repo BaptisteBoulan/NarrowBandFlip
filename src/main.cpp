@@ -1,5 +1,6 @@
 #include "Simulation.h"
 #include "shader.h"
+#include "camera.h"
 
 // Global State
 int simRes = 64;
@@ -16,6 +17,11 @@ bool showParticles = true;
 bool leftMouseDown = false;
 float mouseX, mouseY;
 float SPAWN_RATE = 0.1f / simRes;
+
+// Camera
+Camera camera(glm::vec3(-0.6f, 0.5f, 1.0f)); 
+float lastX = 400, lastY = 400; // Center of screen
+bool firstMouse = true;
 
 float quadVertices[] = {
     // Pos      // Tex
@@ -160,6 +166,17 @@ void render() {
             sim.applyPressure(dt);
             sim.g2p(dt);
         }
+
+        // CAMERA MOVEMENTS
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            camera.ProcessKeyboard(FORWARD, dt);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            camera.ProcessKeyboard(BACKWARD, dt);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            camera.ProcessKeyboard(LEFT, dt);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            camera.ProcessKeyboard(RIGHT, dt);
+
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -174,10 +191,21 @@ void render() {
         // PARTICLE DISPLAY
         if (showParticles) {
             glUseProgram(particleShader);
+
+            // Uniforms
+            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 800.0f, 0.1f, 100.0f);
+            glm::mat4 view = camera.GetViewMatrix();
+            glm::mat4 model = glm::mat4(1.0f);
+
+            glUniformMatrix4fv(glGetUniformLocation(particleShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+            glUniformMatrix4fv(glGetUniformLocation(particleShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(glGetUniformLocation(particleShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
             glBindVertexArray(particleVAO);
             glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
-            glPointSize(1.0f);
+
+            glPointSize(2.0f);
             glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
         }
 
