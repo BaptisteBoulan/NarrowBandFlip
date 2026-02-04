@@ -3,8 +3,8 @@
 layout(local_size_x = 256) in;
 
 struct Particle {
-    vec2 pos;
-    vec2 vel;
+    vec4 pos;
+    vec4 vel;
 };
 
 // Buffers

@@ -10,8 +10,6 @@ GLuint particleVAO, particleVBO;
 GLuint quadVAO, quadVBO;
 GLuint particleShader, backgroundShader;
 bool paused = true;
-bool showBackground = false;
-bool showParticles = true;
 
 // Mouse
 bool leftMouseDown = false;
@@ -38,8 +36,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_SPACE) paused = !paused;         // Pause/Play simulation
         if (key == GLFW_KEY_ENTER) { sim = Simulation(simRes); sim.initGPU(); } // Restart simulation
-        if (key == GLFW_KEY_1) showBackground = !showBackground;  // Toggle background
-        if (key == GLFW_KEY_2) showParticles = !showParticles;    // Toggle particles
     }
 }
 
@@ -105,7 +101,8 @@ void initGL() {
     // Pre-allocate buffer for maximum particles
     glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), NULL, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
+
 
     sim.initGPU();
     initBackground();
@@ -180,34 +177,24 @@ void render() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // BACKGROUND DISPLAY
-        if (showBackground) {
-            glUseProgram(backgroundShader);
-            glUniform1i(glGetUniformLocation(backgroundShader, "size"), simRes);
-            glBindVertexArray(quadVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-
         // PARTICLE DISPLAY
-        if (showParticles) {
-            glUseProgram(particleShader);
+        glUseProgram(particleShader);
 
-            // Uniforms
-            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 800.0f, 0.1f, 100.0f);
-            glm::mat4 view = camera.GetViewMatrix();
-            glm::mat4 model = glm::mat4(1.0f);
+        // Uniforms
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 800.0f, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 model = glm::mat4(1.0f);
 
-            glUniformMatrix4fv(glGetUniformLocation(particleShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-            glUniformMatrix4fv(glGetUniformLocation(particleShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
-            glUniformMatrix4fv(glGetUniformLocation(particleShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(glGetUniformLocation(particleShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(glGetUniformLocation(particleShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(particleShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-            glBindVertexArray(particleVAO);
-            glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
+        glBindVertexArray(particleVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
 
-            glPointSize(2.0f);
-            glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
-        }
+        glPointSize(2.0f);
+        glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
