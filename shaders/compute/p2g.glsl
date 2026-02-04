@@ -11,8 +11,8 @@ struct Particle {
 layout(std430, binding = 0) buffer ParticleBuffer { Particle particles[]; };
 layout(std430, binding = 1) coherent buffer UBuffer         { uint us[]; };
 layout(std430, binding = 2) coherent buffer VBuffer         { uint vs[]; };
-layout(std430, binding = 3) coherent buffer UMassBuffer    { uint uMasses[]; };
-layout(std430, binding = 4) coherent buffer VMassBuffer    { uint vMasses[]; };
+layout(std430, binding = 4) coherent buffer UMassBuffer    { uint uMasses[]; };
+layout(std430, binding = 5) coherent buffer VMassBuffer    { uint vMasses[]; };
 
 uniform int size;
 uniform int numParticles;

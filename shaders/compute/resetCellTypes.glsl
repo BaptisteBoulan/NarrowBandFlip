@@ -2,9 +2,9 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(std430, binding = 5) coherent buffer NewUBuffer { float new_us[]; };
-layout(std430, binding = 6) coherent buffer NewVBuffer { float new_vs[]; };
-layout(std430, binding = 8) coherent buffer CellType   { uint cellType[]; };
+layout(std430, binding = 7) coherent buffer NewUBuffer { float new_us[]; };
+layout(std430, binding = 8) coherent buffer NewVBuffer { float new_vs[]; };
+layout(std430, binding = 10) coherent buffer CellType   { uint cellType[]; };
 
 uniform int size;
 

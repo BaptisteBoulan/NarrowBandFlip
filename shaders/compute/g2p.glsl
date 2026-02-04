@@ -11,9 +11,9 @@ struct Particle {
 layout(std430, binding = 0) buffer ParticleBuffer { Particle particles[]; };
 layout(std430, binding = 1) coherent buffer UBuffer         { float us[]; };
 layout(std430, binding = 2) coherent buffer VBuffer         { float vs[]; };
-layout(std430, binding = 5) coherent buffer NewUBuffer         { float new_us[]; };
-layout(std430, binding = 6) coherent buffer NewVBuffer         { float new_vs[]; };
-layout(std430, binding = 8) buffer CellTypeBuffer { int cellType[]; };
+layout(std430, binding = 7) coherent buffer NewUBuffer         { float new_us[]; };
+layout(std430, binding = 8) coherent buffer NewVBuffer         { float new_vs[]; };
+layout(std430, binding = 10) buffer CellTypeBuffer { int cellType[]; };
 
 uniform int size;
 uniform int numParticles;

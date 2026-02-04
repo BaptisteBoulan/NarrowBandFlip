@@ -148,23 +148,31 @@ void Simulation::initBuffer(int index, GLuint& ssbo, const std::vector<T>& data)
 void Simulation::initGPU() {
 
     initBuffer(0, particleSSBO, particles);
+
     initBuffer(1, uSSBO, grid.us);
     initBuffer(2, vSSBO, grid.vs);
-    initBuffer(3, uMassSSBO, grid.uMasses);
-    initBuffer(4, vMassSSBO, grid.vMasses);
-    initBuffer(5, newuSSBO, grid.new_us);
-    initBuffer(6, newvSSBO, grid.new_vs);
-    initBuffer(7, pressureSSBO, grid.pressure);
-    initBuffer(8, cellTypeSSBO, grid.cellType);
-    initBuffer(9, adSSBO, Ad); 
-    initBuffer(10, directionSSBO, direction);
+    initBuffer(3, wSSBO, grid.ws);
+
+    initBuffer(4, uMassSSBO, grid.uMasses);
+    initBuffer(5, vMassSSBO, grid.vMasses);
+    initBuffer(6, wMassSSBO, grid.wMasses);
+
+    initBuffer(7, newuSSBO, grid.new_us);
+    initBuffer(8, newvSSBO, grid.new_vs);
+    initBuffer(9, newwSSBO, grid.new_ws);
+
+    initBuffer(10, cellTypeSSBO, grid.cellType);
     initBuffer(11, divSSBO, grid.divergence);
-    initBuffer(12, residualSSBO, residual);
+    initBuffer(12, pressureSSBO, grid.pressure);
+
+    initBuffer(13, residualSSBO, residual);
+    initBuffer(14, directionSSBO, direction);
+    initBuffer(15, adSSBO, Ad); 
 
     glGenBuffers(1, &paramsSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 4*sizeof(float), &params, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, paramsSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 16, paramsSSBO);
 
     // Compile shaders
     p2gProg = createShaderProgram({{"shaders/compute/p2g.glsl", ShaderType::COMPUTE}});

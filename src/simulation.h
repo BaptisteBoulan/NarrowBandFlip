@@ -54,6 +54,7 @@ public:
         params = SolverParams({0,0,0,0});
         NUM_GROUP_1D = (grid.total_cells + 255) / 256;
         NUM_GROUP_2D = (size + 16) / 16;
+        NUM_GROUP_2D = (size + 8) / 8;
 
         std::cout<<particles.size()<<std::endl;
     }
@@ -80,7 +81,11 @@ private:
     int NUM_GROUP_2D;
 
      
-    GLuint particleSSBO, uSSBO, vSSBO, uMassSSBO, vMassSSBO, newuSSBO, newvSSBO, pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO, divSSBO, residualSSBO, paramsSSBO;
+    GLuint particleSSBO;
+    GLuint uSSBO, vSSBO, wSSBO;
+    GLuint uMassSSBO, vMassSSBO, wMassSSBO;
+    GLuint newuSSBO, newvSSBO, newwSSBO;
+    GLuint pressureSSBO, cellTypeSSBO, adSSBO, directionSSBO, dAdSSBO, divSSBO, residualSSBO, paramsSSBO;
     GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg;
     std::vector<float> Ad, direction, residual;
     SolverParams params;

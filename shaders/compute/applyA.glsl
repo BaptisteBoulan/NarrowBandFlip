@@ -2,9 +2,9 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(std430, binding = 8) buffer CellTypeBuffer { int cellType[]; };
-layout(std430, binding = 9) buffer AdBuffer { float Ad[]; };
-layout(std430, binding = 10) buffer DirectionBuffer { float direction[]; };
+layout(std430, binding = 10) buffer CellTypeBuffer { int cellType[]; };
+layout(std430, binding = 14) buffer DirectionBuffer { float direction[]; };
+layout(std430, binding = 15) buffer AdBuffer { float Ad[]; };
 
 uniform int size;
 

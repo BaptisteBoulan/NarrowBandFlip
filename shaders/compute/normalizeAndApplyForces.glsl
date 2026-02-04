@@ -4,10 +4,10 @@ layout(local_size_x = 256) in;
 
 layout(std430, binding = 1) coherent buffer UBuffer { float[] us; };
 layout(std430, binding = 2) coherent buffer VBuffer { float[] vs; };
-layout(std430, binding = 3) coherent buffer UMassBuffer { float[] uMasses; };
-layout(std430, binding = 4) coherent buffer VMassBuffer { float[] vMasses; };
-layout(std430, binding = 5) coherent buffer NewUBuffer { float[] new_us; };
-layout(std430, binding = 6) coherent buffer NewVBuffer { float[] new_vs; };
+layout(std430, binding = 4) coherent buffer UMassBuffer { float[] uMasses; };
+layout(std430, binding = 5) coherent buffer VMassBuffer { float[] vMasses; };
+layout(std430, binding = 7) coherent buffer NewUBuffer { float[] new_us; };
+layout(std430, binding = 8) coherent buffer NewVBuffer { float[] new_vs; };
 
 uniform int size;
 uniform float gravity;

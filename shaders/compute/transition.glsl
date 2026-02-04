@@ -9,7 +9,7 @@ struct SolverParams {
     float alpha;
 };
 
-layout(std430, binding = 13) coherent buffer ParamsBuffer { SolverParams params; };
+layout(std430, binding = 16) coherent buffer ParamsBuffer { SolverParams params; };
 
 void main() {
     params.alpha = (params.dAd < 1e-6) ? 0.0f : (params.deltaNew / params.dAd);

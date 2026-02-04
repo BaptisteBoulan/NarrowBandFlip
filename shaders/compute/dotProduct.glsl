@@ -9,10 +9,10 @@ struct SolverParams {
 
 layout(local_size_x = 256) in;
 
-layout(std430, binding = 9) coherent buffer AdBuffer { float Ad[]; };
-layout(std430, binding = 10) coherent buffer DirectionBuffer { float direction[]; };
-layout(std430, binding = 12) coherent buffer ResidualBuffer { float residual[]; };
-layout(std430, binding = 13) coherent buffer ParamsBufferUint {
+layout(std430, binding = 15) coherent buffer AdBuffer { float Ad[]; };
+layout(std430, binding = 14) coherent buffer DirectionBuffer { float direction[]; };
+layout(std430, binding = 13) coherent buffer ResidualBuffer { float residual[]; };
+layout(std430, binding = 16) coherent buffer ParamsBufferUint {
     uint dAd;
     uint deltaNew;
     uint deltaOld;

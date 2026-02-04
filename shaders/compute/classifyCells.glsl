@@ -9,7 +9,7 @@ struct Particle {
 
 // Buffers
 layout(std430, binding = 0) buffer ParticleBuffer { Particle particles[]; };
-layout(std430, binding = 8) coherent buffer CellType   { uint cellType[]; };
+layout(std430, binding = 10) coherent buffer CellType   { uint cellType[]; };
 
 uniform int size;
 uniform int numParticles;
