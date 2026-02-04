@@ -29,21 +29,24 @@ public:
         // Init walls
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                if (i == 0 || i == size - 1 || j == 0 || j == size - 1) {
-                    grid.cellType[grid.gridIdx(i, j)] = CellType::SOLID;
-                } else {
-                    grid.cellType[grid.gridIdx(i, j)] = CellType::AIR;
+                for (int k = 0; k < size; k++) {
+                    if (i == 0 || i == size - 1 || j == 0 || j == size - 1 || k == -1 || k == size - 1) {
+                        grid.cellType[grid.gridIdx(i, j, k)] = CellType::SOLID;
+                    } else {
+                        grid.cellType[grid.gridIdx(i, j, k)] = CellType::AIR;
+                    }
                 }
             }
         }
         // Init particles
-        glm::vec2 p1(0.6f, 0.05f);
-        glm::vec2 p2(0.95f, 0.95f);
-        float spacing = 0.1f / size;
+        glm::vec3 p1(0.6f, 0.05f, 0.01f);
+        glm::vec3 p2(0.95f, 0.95f, 0.3f);
+        float spacing = 0.5f / size;
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
-                particles.emplace_back(glm::vec2(x,y));
+                for (float z = p1.z; z < p2.z; z += spacing)
+                    particles.emplace_back(glm::vec3(x,y,z));
             }
         }
 
@@ -67,7 +70,7 @@ public:
     void g2p(float dt);
 
     // HELPERS
-    void addParticle(glm::vec2 pos);
+    void addParticle(glm::vec3 pos);
     void updateParticleBuffer();
 
     // GPU

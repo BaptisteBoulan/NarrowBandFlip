@@ -27,7 +27,7 @@ void Simulation::p2g(float dt) {
 void Simulation::computeDivergences(float dt) {
     glUseProgram(computeDivProg);
     glUniform1f(glGetUniformLocation(computeDivProg, "dt"), dt);
-    dispatchCompute(computeDivProg, NUM_GROUP_2D, NUM_GROUP_2D);
+    dispatchCompute(computeDivProg, NUM_GROUP_2D, NUM_GROUP_3D, NUM_GROUP_3D);
     getDataFromGPU(divSSBO, grid.divergence);
 }
 
@@ -64,6 +64,7 @@ void Simulation::solvePressure(float dt) {
     dispatchCompute(dotProductProg, NUM_GROUP_1D);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
+    std::cout<<params.deltaNew<<std::endl;
 
     float epsilon = 1e-6f;
     int maxIter = 100;
@@ -122,7 +123,7 @@ float Simulation::dotProduct(const std::vector<float>& a, const std::vector<floa
     return result;
 }
 
-void Simulation::addParticle(glm::vec2 pos) {
+void Simulation::addParticle(glm::vec3 pos) {
     int i = (int)(pos.x*size);
     int j = (int)(pos.y*size);
     if (i<1 || i>=size-1 || j<1 || j>=size-1) return;
@@ -130,7 +131,7 @@ void Simulation::addParticle(glm::vec2 pos) {
 
     float theta = (float)(2 * M_PI * rand())/RAND_MAX;
     float rho = 0.03f * (float)rand()/RAND_MAX;
-    glm::vec2 offset(cos(theta), sin(theta));
+    glm::vec3 offset(cos(theta), sin(theta), 0.0f);
     particles.emplace_back(pos + rho * offset);
 }
 

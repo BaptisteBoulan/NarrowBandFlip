@@ -146,7 +146,7 @@ void render() {
         if (leftMouseDown && !paused) {
             spawnTimer += dt;
             while (spawnTimer >= SPAWN_RATE) {
-                sim.addParticle(glm::vec2((float)mouseX, (float)mouseY));
+                sim.addParticle(glm::vec3((float)mouseX, (float)mouseY, 0.2f));
                 spawnTimer -= SPAWN_RATE;
             }
             sim.updateParticleBuffer();
