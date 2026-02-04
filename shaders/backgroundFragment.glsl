@@ -49,8 +49,8 @@ void main() {
         float alpha = clamp(smoothedDensity * 0.5, 0.0, 1.0);
         // Foam effect: if density is low but not zero, use foamColor
         float foamThreshold = 0.1;
-        float waterThreshold = 5.0;
-        float deepWaterThreshold = 50.0;
+        float waterThreshold = 10.0;
+        float deepWaterThreshold = 200.0;
         vec3 finalColor;
 
         if (smoothedDensity < foamThreshold) {
@@ -60,7 +60,7 @@ void main() {
             float foamAlpha = smoothstep(foamThreshold, waterThreshold, smoothedDensity);
             finalColor = mix(foamColor, waterColor, foamAlpha);
         } else {
-            float waterAlpha = smoothstep(waterThreshold, 50.0, smoothedDensity);
+            float waterAlpha = smoothstep(waterThreshold, deepWaterThreshold, smoothedDensity);
             finalColor =  mix(waterColor, deepWaterColor, waterAlpha);
         }
 

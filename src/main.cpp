@@ -2,20 +2,20 @@
 #include "shader.h"
 
 // Global State
-int simRes = 128;
+int simRes = 64;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
 GLuint quadVAO, quadVBO;
 GLuint particleShader, backgroundShader;
 bool paused = true;
-bool showBackground = true;
-bool showParticles = false;
+bool showBackground = false;
+bool showParticles = true;
 
 // Mouse
 bool leftMouseDown = false;
 float mouseX, mouseY;
-float SPAWN_RATE = 1.0f / simRes / simRes;
+float SPAWN_RATE = 0.1f / simRes;
 
 float quadVertices[] = {
     // Pos      // Tex

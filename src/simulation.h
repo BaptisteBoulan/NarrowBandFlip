@@ -44,8 +44,8 @@ public:
             }
         }
 
-        for (int i = size / 2 - 2; i <= size / 2 + 2; i++) {
-            for (int j = size / 4 - 2; j <= size / 4 + 2; j++) {
+        for (int i = size / 2 - 5; i <= size / 2 + 5; i++) {
+            for (int j = size / 4 - 5; j <= size / 4 + 5; j++) {
                 grid.cellType[grid.gridIdx(i, j)] = CellType::SOLID;
             }
         }
@@ -53,7 +53,7 @@ public:
         // Init particles
         glm::vec2 p1(0.6f, 0.05f);
         glm::vec2 p2(0.95f, 0.95f);
-        float spacing = 50.0f / grid.total_size;
+        float spacing = 0.1f / size;
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
@@ -68,6 +68,8 @@ public:
         params = SolverParams({0,0,0,0});
         NUM_GROUP_1D = (grid.total_size + 255) / 256;
         NUM_GROUP_2D = (size + 16) / 16;
+
+        std::cout<<particles.size()<<std::endl;
     }
 
     // STEPS
