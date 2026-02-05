@@ -7,8 +7,18 @@ uniform mat4 view;
 uniform mat4 projection;
 
 out vec3 vPos;
+out float vPointSize;
 
 void main() {
-    gl_Position = projection * view * model * vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    vec4 viewPos = view * worldPos;
+    float distance = -viewPos.z; // Distance from the camera
+
+    // Attenuate the point size based on distance
+    float size = 10.0 / distance;
+    gl_PointSize = size;
+    vPointSize = size;
+
+    gl_Position = projection * viewPos;
     vPos = aPos;
 }

@@ -3,7 +3,7 @@
 #include "camera.h"
 
 // Global State
-int simRes = 16;
+int simRes = 32;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
@@ -13,10 +13,10 @@ bool paused = true;
 // Mouse
 bool leftMouseDown = false;
 float mouseX, mouseY;
-float SPAWN_RATE = 0.1f / simRes;
+float SPAWN_RATE = 0.03f / simRes;
 
 // Camera
-Camera camera(glm::vec3(-1.0f, 0.5f, 2.0f)); 
+Camera camera(glm::vec3(-0.5f, 0.5f, 1.5f)); 
 float lastX = 400, lastY = 400; // Center of screen
 bool firstMouse = true;
 
@@ -64,7 +64,9 @@ void initGL() {
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
 
-    glEnable(GL_DEPTH);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_POINT_SPRITE);
 
     // --- Particle Setup ---
     glGenVertexArrays(1, &particleVAO);
@@ -164,7 +166,7 @@ void render() {
         glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
 
-        glPointSize(4.0f);
+        glPointSize(10.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
         glfwSwapBuffers(window);

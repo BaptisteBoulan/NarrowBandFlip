@@ -4,6 +4,8 @@ layout(std430, binding = 5) buffer vMassBuffer { float vsMasse[]; };
 layout(std430, binding = 10) buffer cellTypeBuffer { int cellTypes[]; };
 
 in vec3 vPos;
+in float vPointSize;
+
 uniform int size;
 
 out vec4 FragColor;
@@ -16,6 +18,13 @@ float getMass(int i, int j, int k) {
 }
 
 void main() {
+    
+    vec2 coord = gl_PointCoord - vec2(0.5);
+    float dist = dot(coord, coord);
+    if (dist > 0.25) {
+        discard;
+    }
+
     vec3 pos = vPos * vec3(float(size));
     ivec3 iPos = ivec3(floor(pos));
     vec3 f = fract(pos);
@@ -32,8 +41,8 @@ void main() {
     vec3 deepWaterColor = vec3(0.0, 0.2, 0.5);
 
     float alpha = clamp(density * 0.5, 0.0, 1.0);
-    float foamThreshold = 100.0;
-    float waterThreshold = 300.0;
+    float foamThreshold = 10.0;
+    float waterThreshold = 60.0;
     vec3 finalColor;
 
     if (density < foamThreshold) {
