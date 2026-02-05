@@ -1,6 +1,7 @@
 #include "Simulation.h"
 #include "shader.h"
 #include "camera.h"
+#include "frameRecording/FrameRecorder.h"
 
 // Global State
 int simRes = 32;
@@ -9,6 +10,7 @@ GLFWwindow* window;
 GLuint particleVAO, particleVBO;
 GLuint particleShader;
 bool paused = true;
+FrameRecorder frameRecorder; 
 
 // Mouse
 bool leftMouseDown = false;
@@ -33,7 +35,14 @@ float quadVertices[] = {
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_P) paused = !paused;         // Pause/Play simulation
+        if (key == GLFW_KEY_P) {
+            paused = !paused; 
+            if (!frameRecorder.isRecording()) {
+                frameRecorder.startRecording();
+            } else {
+                frameRecorder.stopRecording();
+            }
+        } // Pause/Play simulation and Start/Stop the recording
         if (key == GLFW_KEY_ENTER) { sim = Simulation(simRes); sim.initGPU(); } // Restart simulation
     }
 }
@@ -122,7 +131,8 @@ void render() {
             glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
         }
 
-        dt = std::min(dt, 0.02f);
+        // dt = std::min(dt, 0.02f);
+        dt = 0.02f;
 
         if (!paused) {
             sim.p2g(dt);
@@ -166,8 +176,16 @@ void render() {
         glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
 
-        glPointSize(10.0f);
+        glPointSize(5.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
+
+
+        if (frameRecorder.isRecording()) {
+            int width, height;
+            glfwGetFramebufferSize(window, &width, &height);
+            frameRecorder.saveFrame(width, height);
+        }
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();

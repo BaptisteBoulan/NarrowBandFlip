@@ -15,7 +15,7 @@ void main() {
     float distance = -viewPos.z; // Distance from the camera
 
     // Attenuate the point size based on distance
-    float size = 10.0 / distance;
+    float size = 5.0 / distance;
     gl_PointSize = size;
     vPointSize = size;
 

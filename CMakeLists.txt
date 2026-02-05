@@ -41,6 +41,10 @@ add_executable(renderze
     src/simulation.cpp
     src/camera.cpp
     
+    src/frameRecording/stb_image_write.h
+    src/frameRecording/frameRecorder.h
+    src/frameRecording/frameRecorder.cpp
+    
     )
 
 target_link_libraries(renderze PRIVATE glfw glad)
