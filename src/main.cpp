@@ -4,7 +4,7 @@
 #include "frameRecording/FrameRecorder.h"
 
 // Global State
-int simRes = 32;
+int simRes = 64;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
@@ -176,7 +176,7 @@ void render() {
         glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
 
-        glPointSize(5.0f);
+        glPointSize(3.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
 
