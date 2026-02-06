@@ -10,10 +10,12 @@ struct SolverParams {
 };
 
 layout(std430, binding = 12) coherent buffer PressureBuffer  { float[] pressure; };
-layout(std430, binding = 15)  coherent buffer AdBuffer        { float[] Ad; };
-layout(std430, binding = 14) coherent buffer DirectionBuffer { float[] direction; };
-layout(std430, binding = 13) coherent buffer ResidualBuffer  { float[] residual; };
-layout(std430, binding = 16) coherent buffer ParamsBuffer    { SolverParams params; };
+
+layout(std430, binding = 18) coherent buffer ResidualBuffer  { float[] residual; };
+layout(std430, binding = 19) coherent buffer DirectionBuffer { float[] direction; };
+layout(std430, binding = 20)  coherent buffer AdBuffer        { float[] Ad; };
+
+layout(std430, binding = 21) coherent buffer ParamsBuffer    { SolverParams params; };
 
 uniform int size;
 

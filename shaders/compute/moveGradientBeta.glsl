@@ -9,11 +9,12 @@ struct SolverParams {
     float alpha;
 };
 
-layout(std430, binding = 14) coherent buffer DirectionBuffer { float[] direction; };
-layout(std430, binding = 13) readonly buffer ResidualBuffer  { float[] residual; };
+
+layout(std430, binding = 18) readonly buffer ResidualBuffer  { float[] residual; };
+layout(std430, binding = 19) coherent buffer DirectionBuffer { float[] direction; };
 
 
-layout(std430, binding = 16) coherent buffer ParamsBuffer    { SolverParams params; };
+layout(std430, binding = 21) coherent buffer ParamsBuffer    { SolverParams params; };
 
 uniform int size;
 

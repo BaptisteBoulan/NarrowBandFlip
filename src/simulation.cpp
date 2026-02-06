@@ -4,6 +4,13 @@
 
 // === MAIN STEPS ===
 
+
+void Simulation::advectLevelSet(float dt) {
+    glUseProgram(advectLevelSetProg);
+    glUniform1f(glGetUniformLocation(advectLevelSetProg, "dt"), dt);
+    dispatchCompute(advectLevelSetProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
+}
+
 void Simulation::p2g(float dt) {
     clearBuffer(uSSBO);
     clearBuffer(vSSBO);
@@ -25,6 +32,10 @@ void Simulation::p2g(float dt) {
 
     dispatchCompute(classifyCellsProg, ((int)particles.size() + 255) / 256);
     getDataFromGPU(cellTypeSSBO, grid.cellType);
+
+    clearBufferInt(particlesLevelSetSSBO, 100000);
+    dispatchCompute(particlesLevelSetProg, ((int)particles.size() + 255) / 256);
+    dispatchCompute(updateLevelSetProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 }
 
 void Simulation::computeDivergences(float dt) {
@@ -170,35 +181,46 @@ void Simulation::initGPU() {
     initBuffer(11, divSSBO, grid.divergence);
     initBuffer(12, pressureSSBO, grid.pressure);
 
-    initBuffer(13, residualSSBO, residual);
-    initBuffer(14, directionSSBO, direction);
-    initBuffer(15, adSSBO, Ad); 
+    initBuffer(13, levelSetSSBO, grid.levelSet);
+    initBuffer(14, newLevelSetSSBO, grid.newLevelSet);
+    initBuffer(16, particlesLevelSetSSBO, grid.particlesLevelSet);
+    initBuffer(17, finalLevelSetSSBO, grid.finalLevelSet);
+
+    initBuffer(18, residualSSBO, residual);
+    initBuffer(19, directionSSBO, direction);
+    initBuffer(20, adSSBO, Ad); 
 
     glGenBuffers(1, &paramsSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 4*sizeof(float), &params, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 16, paramsSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 21, paramsSSBO);
 
     // Compile shaders
-    p2gProg = createShaderProgram({{"shaders/compute/p2g.glsl", ShaderType::COMPUTE}});
-    normalizeProg = createShaderProgram({{"shaders/compute/normalizeAndApplyForces.glsl", ShaderType::COMPUTE}});
-    resetCellTypesProg = createShaderProgram({{"shaders/compute/resetCellTypes.glsl", ShaderType::COMPUTE}});
-    classifyCellsProg = createShaderProgram({{"shaders/compute/classifyCells.glsl", ShaderType::COMPUTE}});
+    advectLevelSetProg      = createShaderProgram({{"shaders/compute/advectLevelSet.glsl",              ShaderType::COMPUTE}});
+    p2gProg                 = createShaderProgram({{"shaders/compute/p2g.glsl",                         ShaderType::COMPUTE}});
+    normalizeProg           = createShaderProgram({{"shaders/compute/normalizeAndApplyForces.glsl",     ShaderType::COMPUTE}});
+    resetCellTypesProg      = createShaderProgram({{"shaders/compute/resetCellTypes.glsl",              ShaderType::COMPUTE}});
+    classifyCellsProg       = createShaderProgram({{"shaders/compute/classifyCells.glsl",               ShaderType::COMPUTE}});
+    particlesLevelSetProg   = createShaderProgram({{"shaders/compute/particlesLevelSet.glsl",           ShaderType::COMPUTE}});
+    updateLevelSetProg      = createShaderProgram({{"shaders/compute/updateLevelSet.glsl",              ShaderType::COMPUTE}});
 
-    computeDivProg = createShaderProgram({{"shaders/compute/computeDiv.glsl", ShaderType::COMPUTE}});
+    computeDivProg          = createShaderProgram({{"shaders/compute/computeDiv.glsl",                  ShaderType::COMPUTE}});
 
-    dotProductProg = createShaderProgram({{"shaders/compute/dotProduct.glsl", ShaderType::COMPUTE}});
-    moveAlphaProg = createShaderProgram({{"shaders/compute/moveGradientAlpha.glsl", ShaderType::COMPUTE}});
-    moveBetaProg = createShaderProgram({{"shaders/compute/moveGradientBeta.glsl", ShaderType::COMPUTE}});
-    transitionProg = createShaderProgram({{"shaders/compute/transition.glsl", ShaderType::COMPUTE}});
+    dotProductProg          = createShaderProgram({{"shaders/compute/dotProduct.glsl",                  ShaderType::COMPUTE}});
+    moveAlphaProg           = createShaderProgram({{"shaders/compute/moveGradientAlpha.glsl",           ShaderType::COMPUTE}});
+    moveBetaProg            = createShaderProgram({{"shaders/compute/moveGradientBeta.glsl",            ShaderType::COMPUTE}});
+    transitionProg          = createShaderProgram({{"shaders/compute/transition.glsl",                  ShaderType::COMPUTE}});
 
-    applyAProg = createShaderProgram({{"shaders/compute/applyA.glsl", ShaderType::COMPUTE}});
+    applyAProg              = createShaderProgram({{"shaders/compute/applyA.glsl",                      ShaderType::COMPUTE}});
 
-    applyPressureProg = createShaderProgram({{"shaders/compute/applyPressure.glsl", ShaderType::COMPUTE}});
-    g2pProg = createShaderProgram({{"shaders/compute/g2p.glsl", ShaderType::COMPUTE}});
+    applyPressureProg       = createShaderProgram({{"shaders/compute/applyPressure.glsl",               ShaderType::COMPUTE}});
+    g2pProg                 = createShaderProgram({{"shaders/compute/g2p.glsl",                         ShaderType::COMPUTE}});
 
 
     // Init unifrom values
+    glUseProgram(advectLevelSetProg);
+    glUniform1i(glGetUniformLocation(advectLevelSetProg, "size"), size);
+
     glUseProgram(p2gProg);
     glUniform1i(glGetUniformLocation(p2gProg, "numParticles"), (int)particles.size());
     glUniform1i(glGetUniformLocation(p2gProg, "size"), size);
@@ -213,6 +235,13 @@ void Simulation::initGPU() {
 
     glUseProgram(resetCellTypesProg);
     glUniform1i(glGetUniformLocation(resetCellTypesProg, "size"), size);
+
+    glUseProgram(particlesLevelSetProg);
+    glUniform1i(glGetUniformLocation(particlesLevelSetProg, "size"), size);
+    glUniform1i(glGetUniformLocation(particlesLevelSetProg, "numParticles"), (int)particles.size());
+
+    glUseProgram(updateLevelSetProg);
+    glUniform1i(glGetUniformLocation(updateLevelSetProg, "size"), size);
 
     glUseProgram(computeDivProg);
     glUniform1i(glGetUniformLocation(computeDivProg, "size"), size);
@@ -242,6 +271,7 @@ void Simulation::initGPU() {
 
     sendDataToGPU(cellTypeSSBO, grid.cellType);
     sendDataToGPU(particleSSBO, particles);
+    sendDataToGPU(levelSetSSBO, grid.levelSet);
 }
 
 
@@ -283,4 +313,9 @@ void Simulation::clearBuffer(GLuint buffer) {
     float zero = 0.0f;
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
     glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32F, GL_RED, GL_FLOAT, &zero);
+}
+
+void Simulation::clearBufferInt(GLuint buffer, int value) {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
+    glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, &value);
 }

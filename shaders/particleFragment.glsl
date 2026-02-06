@@ -2,6 +2,7 @@
 
 layout(std430, binding = 5) buffer vMassBuffer { float vsMasse[]; };
 layout(std430, binding = 10) buffer cellTypeBuffer { int cellTypes[]; };
+layout(std430, binding = 13) buffer LevelSetBuffer { float levelSet[]; };
 
 in vec3 vPos;
 in float vPointSize;
@@ -52,6 +53,10 @@ void main() {
         float waterAlpha = smoothstep(foamThreshold, waterThreshold, density);
         finalColor =  mix(waterColor, deepWaterColor, waterAlpha);
     }
+
+    finalColor.r = -5.0f * levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
+    finalColor.g = -5.0f * levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
+    finalColor.b = -5.0f * levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
 
     FragColor = vec4(finalColor, 1.0);
 }

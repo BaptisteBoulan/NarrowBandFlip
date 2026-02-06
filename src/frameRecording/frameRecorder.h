@@ -17,7 +17,7 @@ public:
 private:
     bool recording;
     int frameRecorded;
-    const int MAX_FRAMES_TO_RECORD = 250;
+    const int MAX_FRAMES_TO_RECORD = 500;
 
     void createFramesDirectoryIfNeeded();
     void saveFrameToDisk(int width, int height, const std::vector<unsigned char>& pixels);

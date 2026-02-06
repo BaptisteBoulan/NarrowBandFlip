@@ -4,7 +4,7 @@
 #include "frameRecording/FrameRecorder.h"
 
 // Global State
-int simRes = 64;
+int simRes = 32;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
@@ -98,7 +98,7 @@ void initShaders() {
     particleShader = createShaderProgram(particleShaders);
 }
 
-void render() {
+void render(bool record = false) {
     float lastTime = (float)glfwGetTime();
     float spawnTimer = 0;
     float fpsTimer = 0;
@@ -135,6 +135,7 @@ void render() {
         dt = 0.02f;
 
         if (!paused) {
+            sim.advectLevelSet(dt);
             sim.p2g(dt);
             sim.computeDivergences(dt);
             sim.solvePressure(dt);
@@ -180,7 +181,7 @@ void render() {
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
 
-        if (frameRecorder.isRecording()) {
+        if (record && frameRecorder.isRecording()) {
             int width, height;
             glfwGetFramebufferSize(window, &width, &height);
             frameRecorder.saveFrame(width, height);

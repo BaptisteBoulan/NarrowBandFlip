@@ -3,8 +3,8 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(std430, binding = 10) buffer CellTypeBuffer { int cellType[]; };
-layout(std430, binding = 14) buffer DirectionBuffer { float direction[]; };
-layout(std430, binding = 15) buffer AdBuffer { float Ad[]; };
+layout(std430, binding = 19) buffer DirectionBuffer { float direction[]; };
+layout(std430, binding = 20) buffer AdBuffer { float Ad[]; };
 
 uniform int size;
 
