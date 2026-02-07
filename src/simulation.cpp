@@ -190,7 +190,7 @@ void Simulation::initGPU() {
 
     initBuffer(13, levelSetSSBO, grid.levelSet);
     initBuffer(14, newLevelSetSSBO, grid.newLevelSet);
-    initBuffer(16, particlesLevelSetSSBO, grid.particlesLevelSet);
+    // initBuffer(16, particlesLevelSetSSBO, grid.particlesLevelSet);
     initBuffer(17, finalLevelSetSSBO, grid.finalLevelSet);
 
     initBuffer(18, residualSSBO, residual);

@@ -1,8 +1,6 @@
 #version 430 core
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
-// We "ping-pong" by reading from one buffer and writing to the other.
-// In our C++ code, LevelSetIn will be finalLevelSet (17) and LevelSetOut will be newLevelSet (14)
 layout(std430, binding = 10) readonly buffer CellTypeBuffer { uint cellType[]; };
 layout(std430, binding = 17) readonly buffer LevelSetIn { float levelSetIn[]; };
 layout(std430, binding = 14) writeonly buffer LevelSetOut { float levelSetOut[]; };
