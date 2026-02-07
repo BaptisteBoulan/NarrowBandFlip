@@ -22,16 +22,9 @@ Camera camera(glm::vec3(-0.5f, 0.5f, 1.5f));
 float lastX = 400, lastY = 400; // Center of screen
 bool firstMouse = true;
 
-float quadVertices[] = {
-    // Pos      // Tex
-    -1.0f,  1.0f, 0.0f, 1.0f,
-    -1.0f, -1.0f, 0.0f, 0.0f,
-     1.0f, -1.0f, 1.0f, 0.0f,
-
-    -1.0f,  1.0f, 0.0f, 1.0f,
-     1.0f, -1.0f, 1.0f, 0.0f,
-     1.0f,  1.0f, 1.0f, 1.0f
-};
+// Debug
+std::vector<float> debugParticles;
+GLuint debugParticleVAO, debugParticleVBO;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
@@ -87,7 +80,37 @@ void initGL() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
 
+    // Debug
+    glGenVertexArrays(1, &debugParticleVAO);
+    glGenBuffers(1, &debugParticleVBO);
+
+    glBindVertexArray(debugParticleVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, debugParticleVBO);
+    glBufferData(GL_ARRAY_BUFFER, debugParticles.size() * 3 * sizeof(float), debugParticles.data(), GL_STATIC_READ);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+
     sim.initGPU();
+}
+
+void initDebug() {
+    for (int i = 0; i < simRes; i += 1) {
+        float x = (0.5f + i)/simRes;
+
+
+        for (int j = 0; j < simRes; j += 1) {
+            float y = (0.5f + j)/simRes;
+
+            for (int k = 0; k < simRes; k += 1) {
+                float z = (0.5f + k)/simRes;
+
+                debugParticles.push_back(x);
+                debugParticles.push_back(y);
+                debugParticles.push_back(z);
+
+            }
+        }
+    }
 }
 
 void initShaders() {
@@ -180,6 +203,10 @@ void render(bool record = false) {
         glPointSize(3.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
+        glBindVertexArray(debugParticleVAO);
+        glPointSize(3.0f);
+        glDrawArrays(GL_POINTS, 0, (GLsizei)debugParticles.size());
+
 
         if (record && frameRecorder.isRecording()) {
             int width, height;
@@ -194,6 +221,7 @@ void render(bool record = false) {
 }
 
 int main() {
+    initDebug();
     initGL();
     initShaders();
     render();

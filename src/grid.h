@@ -20,7 +20,7 @@ public:
     // Level set, cell-centered too
     std::vector<float> levelSet;
     std::vector<float> newLevelSet;
-    std::vector<float> particlesLevelSet;
+    std::vector<int> particlesLevelSet;
     std::vector<float> finalLevelSet;
 
     // Face-centered velocities (Staggered)

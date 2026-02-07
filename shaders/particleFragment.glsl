@@ -2,7 +2,7 @@
 
 layout(std430, binding = 5) buffer vMassBuffer { float vsMasse[]; };
 layout(std430, binding = 10) buffer cellTypeBuffer { int cellTypes[]; };
-layout(std430, binding = 13) buffer LevelSetBuffer { float levelSet[]; };
+layout(std430, binding = 13) buffer LevelSetBuffer { int levelSet[]; };
 
 in vec3 vPos;
 in float vPointSize;
@@ -54,9 +54,15 @@ void main() {
         finalColor =  mix(waterColor, deepWaterColor, waterAlpha);
     }
 
-    finalColor.r = -5.0f * levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
-    finalColor.g = -5.0f * levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
-    finalColor.b = -5.0f * levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
+    int l = levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
+
+    // if (l < 0.0f && l > -0.8f / size) finalColor.r = 1.0f;
+    // else finalColor.r = 0.0f;
+
+    finalColor.r =  l * 0.0000000003f;
+    finalColor.b = -l * 0.0000000003f;
+    finalColor.g =  0.0f;
+
 
     FragColor = vec4(finalColor, 1.0);
 }

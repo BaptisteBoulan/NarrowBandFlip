@@ -36,6 +36,23 @@ void Simulation::p2g(float dt) {
     clearBufferInt(particlesLevelSetSSBO, 100000);
     dispatchCompute(particlesLevelSetProg, ((int)particles.size() + 255) / 256);
     dispatchCompute(updateLevelSetProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
+
+    // Redistance passes to propagate the signed distance field
+    const int numRedistancePasses = 10;
+    for (int i = 0; i < numRedistancePasses; ++i) {
+        // Propagate distances: read finalLevelSet(17), write newLevelSet(14)
+        dispatchCompute(redistanceProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
+
+        // Copy result back for next iteration: newLevelSet(14) -> finalLevelSet(17)
+        // This makes finalLevelSet the input for the next pass.
+        glCopyNamedBufferSubData(newLevelSetSSBO, finalLevelSetSSBO, 0, 0, grid.finalLevelSet.size() * sizeof(float));
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); // Ensure copy is complete before next read
+    }
+
+    // After all passes, the final, smoothed result is in finalLevelSetSSBO.
+    // Copy this into the main levelSet buffer for the next frame's advection.
+    glCopyNamedBufferSubData(finalLevelSetSSBO, levelSetSSBO, 0, 0, grid.levelSet.size() * sizeof(float));
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void Simulation::computeDivergences(float dt) {
@@ -203,6 +220,7 @@ void Simulation::initGPU() {
     classifyCellsProg       = createShaderProgram({{"shaders/compute/classifyCells.glsl",               ShaderType::COMPUTE}});
     particlesLevelSetProg   = createShaderProgram({{"shaders/compute/particlesLevelSet.glsl",           ShaderType::COMPUTE}});
     updateLevelSetProg      = createShaderProgram({{"shaders/compute/updateLevelSet.glsl",              ShaderType::COMPUTE}});
+    redistanceProg          = createShaderProgram({{"shaders/compute/redistance.glsl",                  ShaderType::COMPUTE}});
 
     computeDivProg          = createShaderProgram({{"shaders/compute/computeDiv.glsl",                  ShaderType::COMPUTE}});
 
@@ -242,6 +260,9 @@ void Simulation::initGPU() {
 
     glUseProgram(updateLevelSetProg);
     glUniform1i(glGetUniformLocation(updateLevelSetProg, "size"), size);
+
+    glUseProgram(redistanceProg);
+    glUniform1i(glGetUniformLocation(redistanceProg, "size"), size);
 
     glUseProgram(computeDivProg);
     glUniform1i(glGetUniformLocation(computeDivProg, "size"), size);

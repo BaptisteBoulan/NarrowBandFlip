@@ -23,8 +23,6 @@ void main() {
 
     vec3 pPos = particles[idx].pos.xyz;
     
-    // Find the range of grid cells this particle might influence
-    // Usually a 2x2x2 or 3x3x3 neighborhood
     ivec3 base = ivec3(pPos * size - vec3(1.0)); 
 
     for (int z = 0; z <= 2; z++) {
@@ -34,11 +32,8 @@ void main() {
                 if (cellPos.x < 0 || cellPos.y < 0 || cellPos.z < 0 || 
                     cellPos.x >= size || cellPos.y >= size || cellPos.z >= size) continue;
 
-                // Center of the cell calculation
                 vec3 gridWorldPos = (vec3(cellPos) + 0.5f) / size;
                 
-                // Radius of particle. 1.0 cell width ensures good overlap.
-                // Subtract radius so inside is negative.
                 float dist = length(pPos - gridWorldPos) - (1.0f / size);
 
                 // Scale to int for atomicMin (1000.0 provides 3 decimal places of precision)

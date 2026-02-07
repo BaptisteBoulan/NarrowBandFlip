@@ -2,6 +2,8 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
+layout (std430, binding = 10) coherent buffer CellType { uint cellType[]; };
+
 layout (std430, binding = 13) coherent buffer LevelSetBuffer { float[] levelSet; };
 layout (std430, binding = 14) coherent buffer AdvectedLevelSetBuffer { float[] advectedLevelSet; };
 layout (std430, binding = 16) coherent buffer ParticlesLevelSetBuffer { int[] particlesLevelSet; };
@@ -20,7 +22,12 @@ void main() {
     int idx = getIdx(pos);
     float phi_prime = advectedLevelSet[idx];
     float phi_p = float(particlesLevelSet[idx]) / 1000.0f;
-    float phi_final = min(phi_prime + 1.0f / size, phi_p);
+    uint currentCellType = cellType[idx];
+
+    float phi_final;
+
+    phi_final = min(phi_prime + (1.0/size), phi_p);
+
 
     finalLevelSet[idx] = phi_final;
     levelSet[idx] = phi_final;
