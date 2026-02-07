@@ -5,8 +5,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 layout (std430, binding = 10) coherent buffer CellType { uint cellType[]; };
 
 layout (std430, binding = 13) coherent buffer LevelSetBuffer { float[] levelSet; };
-layout (std430, binding = 14) coherent buffer AdvectedLevelSetBuffer { float[] advectedLevelSet; };
-layout (std430, binding = 16) coherent buffer ParticlesLevelSetBuffer { int[] particlesLevelSet; };
 layout (std430, binding = 17) coherent buffer FinalLevelSetBuffer { float[] finalLevelSet; };
 
 uniform int size;

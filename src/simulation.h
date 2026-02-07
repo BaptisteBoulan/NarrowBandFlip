@@ -117,7 +117,7 @@ private:
     GLuint cellTypeSSBO, divSSBO, pressureSSBO;
     GLuint levelSetSSBO, newLevelSetSSBO, particlesLevelSetSSBO, finalLevelSetSSBO;
     GLuint adSSBO, directionSSBO, dAdSSBO, residualSSBO, paramsSSBO;
-    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, advectLevelSetProg, updateLevelSetProg, particlesLevelSetProg, redistanceProg;
+    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, updateLevelSetProg, redistanceProg;
     std::vector<float> Ad, direction, residual;
     SolverParams params;
 

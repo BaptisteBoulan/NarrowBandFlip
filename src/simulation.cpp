@@ -203,12 +203,10 @@ void Simulation::initGPU() {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 21, paramsSSBO);
 
     // Compile shaders
-    advectLevelSetProg      = createShaderProgram({{"shaders/compute/advectLevelSet.glsl",              ShaderType::COMPUTE}});
     p2gProg                 = createShaderProgram({{"shaders/compute/p2g.glsl",                         ShaderType::COMPUTE}});
     normalizeProg           = createShaderProgram({{"shaders/compute/normalizeAndApplyForces.glsl",     ShaderType::COMPUTE}});
     resetCellTypesProg      = createShaderProgram({{"shaders/compute/resetCellTypes.glsl",              ShaderType::COMPUTE}});
     classifyCellsProg       = createShaderProgram({{"shaders/compute/classifyCells.glsl",               ShaderType::COMPUTE}});
-    particlesLevelSetProg   = createShaderProgram({{"shaders/compute/particlesLevelSet.glsl",           ShaderType::COMPUTE}});
     updateLevelSetProg      = createShaderProgram({{"shaders/compute/updateLevelSet.glsl",              ShaderType::COMPUTE}});
     redistanceProg          = createShaderProgram({{"shaders/compute/redistance.glsl",                  ShaderType::COMPUTE}});
 
@@ -226,9 +224,6 @@ void Simulation::initGPU() {
 
 
     // Init unifrom values
-    glUseProgram(advectLevelSetProg);
-    glUniform1i(glGetUniformLocation(advectLevelSetProg, "size"), size);
-
     glUseProgram(p2gProg);
     glUniform1i(glGetUniformLocation(p2gProg, "numParticles"), (int)particles.size());
     glUniform1i(glGetUniformLocation(p2gProg, "size"), size);
@@ -243,10 +238,6 @@ void Simulation::initGPU() {
 
     glUseProgram(resetCellTypesProg);
     glUniform1i(glGetUniformLocation(resetCellTypesProg, "size"), size);
-
-    glUseProgram(particlesLevelSetProg);
-    glUniform1i(glGetUniformLocation(particlesLevelSetProg, "size"), size);
-    glUniform1i(glGetUniformLocation(particlesLevelSetProg, "numParticles"), (int)particles.size());
 
     glUseProgram(updateLevelSetProg);
     glUniform1i(glGetUniformLocation(updateLevelSetProg, "size"), size);

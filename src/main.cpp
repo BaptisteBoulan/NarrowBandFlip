@@ -4,7 +4,7 @@
 #include "frameRecording/FrameRecorder.h"
 
 // Global State
-int simRes = 32;
+int simRes = 39;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
@@ -19,8 +19,6 @@ float SPAWN_RATE = 0.03f / simRes;
 
 // Camera
 Camera camera(glm::vec3(-0.5f, 0.5f, 1.5f)); 
-float lastX = 400, lastY = 400; // Center of screen
-bool firstMouse = true;
 
 // Debug
 std::vector<float> debugParticles;
