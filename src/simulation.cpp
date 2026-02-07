@@ -4,13 +4,6 @@
 
 // === MAIN STEPS ===
 
-
-void Simulation::advectLevelSet(float dt) {
-    glUseProgram(advectLevelSetProg);
-    glUniform1f(glGetUniformLocation(advectLevelSetProg, "dt"), dt);
-    dispatchCompute(advectLevelSetProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
-}
-
 void Simulation::p2g(float dt) {
     clearBuffer(uSSBO);
     clearBuffer(vSSBO);
@@ -33,24 +26,21 @@ void Simulation::p2g(float dt) {
     dispatchCompute(classifyCellsProg, ((int)particles.size() + 255) / 256);
     getDataFromGPU(cellTypeSSBO, grid.cellType);
 
-    clearBufferInt(particlesLevelSetSSBO, 100000);
-    dispatchCompute(particlesLevelSetProg, ((int)particles.size() + 255) / 256);
+    // Simplified level set initialization: 0 for AIR/SOLID, 1 for FLUID
     dispatchCompute(updateLevelSetProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 
-    // Redistance passes to propagate the signed distance field
-    const int numRedistancePasses = 10;
+    // Propagate depth: iterate size/3 times
+    const int numRedistancePasses = size / 2;
     for (int i = 0; i < numRedistancePasses; ++i) {
         // Propagate distances: read finalLevelSet(17), write newLevelSet(14)
         dispatchCompute(redistanceProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 
         // Copy result back for next iteration: newLevelSet(14) -> finalLevelSet(17)
-        // This makes finalLevelSet the input for the next pass.
         glCopyNamedBufferSubData(newLevelSetSSBO, finalLevelSetSSBO, 0, 0, grid.finalLevelSet.size() * sizeof(float));
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); // Ensure copy is complete before next read
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     }
 
-    // After all passes, the final, smoothed result is in finalLevelSetSSBO.
-    // Copy this into the main levelSet buffer for the next frame's advection.
+    // Copy to main levelSet buffer
     glCopyNamedBufferSubData(finalLevelSetSSBO, levelSetSSBO, 0, 0, grid.levelSet.size() * sizeof(float));
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }

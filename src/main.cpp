@@ -158,7 +158,6 @@ void render(bool record = false) {
         dt = 0.02f;
 
         if (!paused) {
-            sim.advectLevelSet(dt);
             sim.p2g(dt);
             sim.computeDivergences(dt);
             sim.solvePressure(dt);
@@ -203,9 +202,9 @@ void render(bool record = false) {
         glPointSize(3.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
 
-        glBindVertexArray(debugParticleVAO);
-        glPointSize(3.0f);
-        glDrawArrays(GL_POINTS, 0, (GLsizei)debugParticles.size());
+        // glBindVertexArray(debugParticleVAO);
+        // glPointSize(3.0f);
+        // glDrawArrays(GL_POINTS, 0, (GLsizei)debugParticles.size());
 
 
         if (record && frameRecorder.isRecording()) {

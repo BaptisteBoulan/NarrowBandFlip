@@ -20,14 +20,15 @@ void main() {
     if (pos.x >= size || pos.y >= size || pos.z >= size) return;
 
     int idx = getIdx(pos);
-    float phi_prime = advectedLevelSet[idx];
-    float phi_p = float(particlesLevelSet[idx]) / 1000.0f;
     uint currentCellType = cellType[idx];
 
-    float phi_final;
-
-    phi_final = min(phi_prime + (1.0/size), phi_p);
-
+    float phi_final = 0.0;
+    if (currentCellType == 2) { // FLUID
+        phi_final = 1.0; // Large value to be reduced by propagation
+    }
+    if (currentCellType == 0) { // SOLID
+        phi_final = 2.0;
+    }
 
     finalLevelSet[idx] = phi_final;
     levelSet[idx] = phi_final;

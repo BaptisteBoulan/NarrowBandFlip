@@ -87,7 +87,6 @@ public:
     }
 
     // STEPS
-    void advectLevelSet(float dt);
     void p2g(float dt);
     void computeDivergences(float dt);
     void solvePressure(float dt);
