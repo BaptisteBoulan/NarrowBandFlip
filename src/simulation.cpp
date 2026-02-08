@@ -14,7 +14,7 @@ void Simulation::p2g(float dt) {
     clearBuffer(wMassSSBO);
 
     // Pass the particle velocies to the grid
-    dispatchCompute(p2gProg, ((int)particles.size() + 255) / 256);
+    dispatchCompute(p2gProg, NUM_PARTICLES_GROUP);
 
     // Normalize and apply gravity
     glUseProgram(normalizeProg);
@@ -23,14 +23,16 @@ void Simulation::p2g(float dt) {
 
     dispatchCompute(resetCellTypesProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 
-    dispatchCompute(classifyCellsProg, ((int)particles.size() + 255) / 256);
+    dispatchCompute(classifyCellsProg, NUM_PARTICLES_GROUP);
     getDataFromGPU(cellTypeSSBO, grid.cellType);
 
     // Simplified level set initialization: 0 for AIR/SOLID, 1 for FLUID
+    clearBufferInt(particlesLevelSetSSBO, 0);
+    dispatchCompute(particleSetProg, NUM_PARTICLES_GROUP);
     dispatchCompute(updateLevelSetProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
 
     // Propagate depth: iterate size/3 times
-    const int numRedistancePasses = size / 2;
+    const int numRedistancePasses = size / 3;
     for (int i = 0; i < numRedistancePasses; ++i) {
         // Propagate distances: read finalLevelSet(17), write newLevelSet(14)
         dispatchCompute(redistanceProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
@@ -128,7 +130,7 @@ void Simulation::g2p(float dt) {
     glUseProgram(g2pProg);
     glUniform1f(glGetUniformLocation(g2pProg, "dt"), dt);
 
-    dispatchCompute(g2pProg, ((int)particles.size() + 255) / 256);
+    dispatchCompute(g2pProg, NUM_PARTICLES_GROUP);
     getDataFromGPU(particleSSBO, particles);
 }
 
@@ -155,6 +157,8 @@ void Simulation::addParticle(glm::vec3 pos) {
     float rho = 0.03f * (float)rand()/RAND_MAX;
     glm::vec3 offset(cos(theta), sin(theta), 0.0f);
     particles.emplace_back(pos + rho * offset);
+
+    NUM_PARTICLES_GROUP ++;
 }
 
 
@@ -190,7 +194,7 @@ void Simulation::initGPU() {
 
     initBuffer(13, levelSetSSBO, grid.levelSet);
     initBuffer(14, newLevelSetSSBO, grid.newLevelSet);
-    // initBuffer(16, particlesLevelSetSSBO, grid.particlesLevelSet);
+    initBuffer(16, particlesLevelSetSSBO, grid.particlesLevelSet);
     initBuffer(17, finalLevelSetSSBO, grid.finalLevelSet);
 
     initBuffer(18, residualSSBO, residual);
@@ -209,6 +213,7 @@ void Simulation::initGPU() {
     classifyCellsProg       = createShaderProgram({{"shaders/compute/classifyCells.glsl",               ShaderType::COMPUTE}});
     updateLevelSetProg      = createShaderProgram({{"shaders/compute/updateLevelSet.glsl",              ShaderType::COMPUTE}});
     redistanceProg          = createShaderProgram({{"shaders/compute/redistance.glsl",                  ShaderType::COMPUTE}});
+    particleSetProg         = createShaderProgram({{"shaders/compute/particleLevelSet.glsl",            ShaderType::COMPUTE}});
 
     computeDivProg          = createShaderProgram({{"shaders/compute/computeDiv.glsl",                  ShaderType::COMPUTE}});
 
@@ -245,6 +250,10 @@ void Simulation::initGPU() {
     glUseProgram(redistanceProg);
     glUniform1i(glGetUniformLocation(redistanceProg, "size"), size);
 
+    glUseProgram(particleSetProg);
+    glUniform1i(glGetUniformLocation(particleSetProg, "size"), size);
+    glUniform1i(glGetUniformLocation(particleSetProg, "numParticles"), (int)particles.size());
+
     glUseProgram(computeDivProg);
     glUniform1i(glGetUniformLocation(computeDivProg, "size"), size);
     glUniform1f(glGetUniformLocation(computeDivProg, "h"), h);
@@ -274,6 +283,7 @@ void Simulation::initGPU() {
     sendDataToGPU(cellTypeSSBO, grid.cellType);
     sendDataToGPU(particleSSBO, particles);
     sendDataToGPU(levelSetSSBO, grid.levelSet);
+    sendDataToGPU(levelSetSSBO, grid.particlesLevelSet);
 }
 
 
@@ -303,7 +313,6 @@ void Simulation::updateParticleBuffer() {
     glUniform1i(glGetUniformLocation(classifyCellsProg, "numParticles"), (int)particles.size());
 
 }
-
 
 void Simulation::dispatchCompute(GLuint prog, int numX, int numY, int numZ) {
     glUseProgram(prog);

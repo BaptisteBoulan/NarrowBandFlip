@@ -78,6 +78,7 @@ public:
         residual.assign(grid.total_cells, 0.0f);
 
         params = SolverParams({0,0,0,0});
+        NUM_PARTICLES_GROUP = ((int)particles.size() + 255) / 256;
         NUM_VELOCITIES = (size * size * (size+1) + 255) / 256;
         NUM_GROUP_1D = (grid.total_cells + 255) / 256;
         NUM_GROUP_2D = (size + 15) / 16;
@@ -104,6 +105,7 @@ private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;
     float ALPHA = 0.95f;
+    int NUM_PARTICLES_GROUP;
     int NUM_VELOCITIES;
     int NUM_GROUP_1D;
     int NUM_GROUP_2D;
@@ -117,7 +119,7 @@ private:
     GLuint cellTypeSSBO, divSSBO, pressureSSBO;
     GLuint levelSetSSBO, newLevelSetSSBO, particlesLevelSetSSBO, finalLevelSetSSBO;
     GLuint adSSBO, directionSSBO, dAdSSBO, residualSSBO, paramsSSBO;
-    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, updateLevelSetProg, redistanceProg;
+    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, updateLevelSetProg, redistanceProg, particleSetProg;
     std::vector<float> Ad, direction, residual;
     SolverParams params;
 

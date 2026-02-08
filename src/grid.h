@@ -37,7 +37,7 @@ public:
         
         levelSet.resize(total_cells, 0.0f);
         newLevelSet.resize(total_cells, 0.0f);
-        particlesLevelSet.resize(total_cells, 0.0f);
+        particlesLevelSet.resize(total_cells, 0);
         finalLevelSet.resize(total_cells, 0.0f);
 
         int uCount = (size + 1) * size * size;

@@ -18,7 +18,7 @@ float mouseX, mouseY;
 float SPAWN_RATE = 0.03f / simRes;
 
 // Camera
-Camera camera(glm::vec3(-0.5f, 0.5f, 1.5f)); 
+Camera camera(glm::vec3(-0.5f, 0.3f, 1.5f)); 
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {

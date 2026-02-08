@@ -28,6 +28,8 @@ void main() {
         phi_final = 2.0;
     }
 
+
     finalLevelSet[idx] = phi_final;
-    levelSet[idx] = phi_final;
+
+    
 }

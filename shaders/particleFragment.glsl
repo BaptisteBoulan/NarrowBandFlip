@@ -41,7 +41,7 @@ void main() {
     float deepThreshold = 0.1;
     vec3 finalColor;
     if (l < foamThreshold) {
-        finalColor = foamColor;
+        finalColor = vec3(1.0,0.0,0.0);
     } else if (l < waterThreshold) {
         float t = smoothstep(foamThreshold, waterThreshold, l);
         finalColor = mix(foamColor, waterColor, t);
@@ -49,6 +49,9 @@ void main() {
         float t = smoothstep(waterThreshold, deepThreshold, l);
         finalColor = mix(waterColor, deepWaterColor, t);
     }
+
+    finalColor = vec3((1-4*l)*0.5, (1-4*l)*0.8, (1-4*l));
+
 
     FragColor = vec4(finalColor, 1.0);
 }
