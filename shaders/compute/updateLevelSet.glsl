@@ -6,6 +6,7 @@ layout (std430, binding = 10) coherent buffer CellType { uint cellType[]; };
 
 layout (std430, binding = 13) coherent buffer LevelSetBuffer { float[] levelSet; };
 layout (std430, binding = 17) coherent buffer FinalLevelSetBuffer { float[] finalLevelSet; };
+layout (std430, binding = 16) readonly buffer ParticlesLevelSetBuffer { int[] particlesLevelSet; };
 
 uniform int size;
 
@@ -20,12 +21,17 @@ void main() {
     int idx = getIdx(pos);
     uint currentCellType = cellType[idx];
 
+    float pLS = float(particlesLevelSet[idx]) / 1000000.0;
+
     float phi_final = 0.0;
-    if (currentCellType == 2) { // FLUID
-        phi_final = 1.0; // Large value to be reduced by propagation
-    }
     if (currentCellType == 0) { // SOLID
         phi_final = 2.0;
+    }
+    if (currentCellType == 1) { // AIR
+        phi_final = pLS;
+    }
+    if (currentCellType == 2) { // FLUID
+        phi_final = 1.0; // Large value to be reduced by propagation
     }
 
 

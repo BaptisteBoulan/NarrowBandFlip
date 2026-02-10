@@ -45,10 +45,10 @@ void main() {
     } else if (l < waterThreshold) {
         float t = smoothstep(foamThreshold, waterThreshold, l);
         finalColor = mix(foamColor, waterColor, t);
-    } else {
+    } else if (l< deepThreshold) {
         float t = smoothstep(waterThreshold, deepThreshold, l);
         finalColor = mix(waterColor, deepWaterColor, t);
-    }
+    } else finalColor = deepWaterColor;
 
     finalColor = vec3((1-4*l)*0.5, (1-4*l)*0.8, (1-4*l));
 

@@ -12,7 +12,7 @@ frame_files = sorted(
 first_frame = cv2.imread(os.path.join(path, frame_files[0]))
 height, width, layers = first_frame.shape
 
-output_video = "output6.mp4"
+output_video = "output8.mp4"
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 fps = 50

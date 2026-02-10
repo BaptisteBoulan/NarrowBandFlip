@@ -4,7 +4,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 layout(std430, binding = 10) readonly buffer CellTypeBuffer { uint cellType[]; };
 layout(std430, binding = 17) readonly buffer LevelSetIn { float levelSetIn[]; };
 layout(std430, binding = 14) writeonly buffer LevelSetOut { float levelSetOut[]; };
-layout (std430, binding = 16) readonly buffer ParticlesLevelSetBuffer { int[] particlesLevelSet; };
 
 uniform int size;
 
@@ -46,8 +45,5 @@ void main() {
             }
         }
     }
-    float pLS = float(particlesLevelSet[center_idx]) / 1000000.0;
-    // if (minPhi <= 1.0f / size) levelSetOut[center_idx] = min(pLS, minPhi);
-    if (minPhi <= 1.0f / size) levelSetOut[center_idx] = minPhi;
-    else levelSetOut[center_idx] = minPhi;
+    levelSetOut[center_idx] = minPhi;
 }

@@ -4,7 +4,7 @@
 #include "frameRecording/FrameRecorder.h"
 
 // Global State
-int simRes = 64;
+int simRes = 32;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
@@ -182,7 +182,7 @@ void render(bool record = false) {
 int main() {
     initGL();
     initShaders();
-    render(true);
+    render(false);
     glfwTerminate();
     return 0;
 }
