@@ -1,6 +1,5 @@
 #version 450 core
 
-layout(std430, binding = 5) buffer vMassBuffer { float vsMasse[]; };
 layout(std430, binding = 10) buffer cellTypeBuffer { int cellTypes[]; };
 layout(std430, binding = 13) buffer LevelSetBuffer { float levelSet[]; };
 
@@ -10,13 +9,6 @@ in float vPointSize;
 uniform int size;
 
 out vec4 FragColor;
-
-float getMass(int i, int j, int k) {
-    i = clamp(i, 0, size - 1);
-    j = clamp(j, 0, size - 1);
-    k = clamp(k, 0, size - 1);
-    return vsMasse[k * size * size + j * size + i];
-}
 
 void main() {
     
@@ -36,12 +28,13 @@ void main() {
     vec3 waterColor = vec3(0.1, 0.7, 1.0);
     vec3 deepWaterColor = vec3(0.0, 0.1, 0.4);
 
-    float foamThreshold = 0.02;
-    float waterThreshold = 0.05;
-    float deepThreshold = 0.1;
+    float foamThreshold = 0.03;
+    float waterThreshold = 0.1;
+    float deepThreshold = 0.3;
     vec3 finalColor;
+
     if (l < foamThreshold) {
-        finalColor = vec3(1.0,0.0,0.0);
+        finalColor = vec3(1.0);
     } else if (l < waterThreshold) {
         float t = smoothstep(foamThreshold, waterThreshold, l);
         finalColor = mix(foamColor, waterColor, t);
@@ -50,7 +43,7 @@ void main() {
         finalColor = mix(waterColor, deepWaterColor, t);
     } else finalColor = deepWaterColor;
 
-    finalColor = vec3((1-4*l)*0.5, (1-4*l)*0.8, (1-4*l));
+    // finalColor = vec3((1-4*l)*0.5, (1-4*l)*0.8, (1-4*l));
 
 
     FragColor = vec4(finalColor, 1.0);

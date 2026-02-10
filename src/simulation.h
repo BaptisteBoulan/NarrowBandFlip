@@ -93,6 +93,10 @@ public:
     void solvePressure(float dt);
     void applyPressure(float dt);
     void g2p(float dt);
+    
+    // NEW: Particle Management
+    void cullAndResample();
+    glm::vec3 sampleVelocity(glm::vec3 pos);
 
     // HELPERS
     void addParticle(glm::vec3 pos);
@@ -116,10 +120,11 @@ private:
     GLuint uSSBO, vSSBO, wSSBO;
     GLuint uMassSSBO, vMassSSBO, wMassSSBO;
     GLuint newuSSBO, newvSSBO, newwSSBO;
+    GLuint uAdvSSBO, vAdvSSBO, wAdvSSBO;
     GLuint cellTypeSSBO, divSSBO, pressureSSBO;
     GLuint levelSetSSBO, newLevelSetSSBO, particlesLevelSetSSBO, finalLevelSetSSBO;
     GLuint adSSBO, directionSSBO, dAdSSBO, residualSSBO, paramsSSBO;
-    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, updateLevelSetProg, redistanceProg, particleSetProg;
+    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, updateLevelSetProg, redistanceProg, particleLevelSetProg, advectGridProg;
     std::vector<float> Ad, direction, residual;
     SolverParams params;
 

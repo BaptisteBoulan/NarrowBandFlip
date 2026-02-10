@@ -4,7 +4,7 @@
 #include "frameRecording/FrameRecorder.h"
 
 // Global State
-int simRes = 32;
+int simRes = 64;
 Simulation sim(simRes);
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
@@ -18,7 +18,7 @@ float mouseX, mouseY;
 float SPAWN_RATE = 0.03f / simRes;
 
 // Camera
-Camera camera(glm::vec3(-0.5f, 0.3f, 1.5f)); 
+Camera camera(glm::vec3(-0.5f, 0.5f, 1.5f)); 
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
@@ -114,8 +114,6 @@ void render(bool record = false) {
                 spawnTimer -= SPAWN_RATE;
             }
             sim.updateParticleBuffer();
-            glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-            glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
         }
 
         // dt = std::min(dt, 0.02f);
@@ -161,7 +159,7 @@ void render(bool record = false) {
         
         glBindVertexArray(particleVAO);
         glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sim.particles.size() * sizeof(Particle), sim.particles.data());
+        glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
 
         glPointSize(3.0f);
         glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());

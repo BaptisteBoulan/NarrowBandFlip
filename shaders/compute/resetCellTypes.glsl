@@ -7,6 +7,8 @@ layout(std430, binding = 8) coherent buffer NewVBuffer { float new_vs[]; };
 layout(std430, binding = 9) coherent buffer NewWBuffer { float new_ws[]; };
 layout(std430, binding = 10) coherent buffer CellType   { uint cellType[]; };
 
+layout(std430, binding = 13) buffer LevelSetBuffer { float levelSet[]; };
+
 uniform int size;
 
 int gridIdx(int x, int y, int z) {return z * size *size + y * size + x;}
@@ -27,7 +29,9 @@ void main() {
 
     int type = int(cellType[cellIdx]);
 
-    if (type != 0) cellType[cellIdx] = 1; // If not SOLID then AIR
+    if (type != 0) {
+        cellType[cellIdx] = (levelSet[cellIdx] < 5.0f / size) ? 1 : 2; // If not SOLID then AIR/FLUID
+    }
     else {
         new_us[getUIdx(i + 1, j, k)] = 0.0f;
         new_us[getUIdx(i, j, k)] = 0.0f;

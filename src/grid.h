@@ -24,9 +24,9 @@ public:
     std::vector<float> finalLevelSet;
 
     // Face-centered velocities (Staggered)
-    std::vector<float> us, new_us, uMasses;
-    std::vector<float> vs, new_vs, vMasses;
-    std::vector<float> ws, new_ws, wMasses;
+    std::vector<float> us, new_us, uMasses, u_adv;
+    std::vector<float> vs, new_vs, vMasses, v_adv;
+    std::vector<float> ws, new_ws, wMasses, w_adv;
 
     Grid(int size) : size(size) {
         total_cells = size * size * size;
@@ -44,9 +44,9 @@ public:
         int vCount = size * (size + 1) * size;
         int wCount = size * size * (size + 1);
 
-        us.resize(uCount, 0.0f); new_us.resize(uCount, 0.0f); uMasses.resize(uCount, 0.0f);
-        vs.resize(vCount, 0.0f); new_vs.resize(vCount, 0.0f); vMasses.resize(vCount, 0.0f);
-        ws.resize(wCount, 0.0f); new_ws.resize(wCount, 0.0f); wMasses.resize(wCount, 0.0f);
+        us.resize(uCount, 0.0f); new_us.resize(uCount, 0.0f); uMasses.resize(uCount, 0.0f); u_adv.resize(uCount, 0.0f);
+        vs.resize(vCount, 0.0f); new_vs.resize(vCount, 0.0f); vMasses.resize(vCount, 0.0f); v_adv.resize(vCount, 0.0f);
+        ws.resize(wCount, 0.0f); new_ws.resize(wCount, 0.0f); wMasses.resize(wCount, 0.0f); w_adv.resize(wCount, 0.0f);
     }
 
     int gridIdx(int x, int y, int z = 0) const { 

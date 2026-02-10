@@ -14,6 +14,10 @@ layout(std430, binding = 7) coherent buffer NewUBuffer { float[] new_us; };
 layout(std430, binding = 8) coherent buffer NewVBuffer { float[] new_vs; };
 layout(std430, binding = 9) coherent buffer NewWBuffer { float[] new_ws; };
 
+layout(std430, binding = 22) readonly buffer UAdvBuffer { float[] u_adv; };
+layout(std430, binding = 23) readonly buffer VAdvBuffer { float[] v_adv; };
+layout(std430, binding = 24) readonly buffer WAdvBuffer { float[] w_adv; };
+
 uniform int size;
 uniform float gravity;
 uniform float dt;
@@ -24,13 +28,25 @@ void main() {
     if (idx >= size * size * (size+1)) return;
     
     float um = uMasses[idx];
-    if (um>0.0001f) us[idx] /= um;
+    if (um>0.0001f) {
+        us[idx] /= um;
+    } else {
+        us[idx] = u_adv[idx];
+    }
     
     float vm = vMasses[idx];
-    if (vm>0.0001f) vs[idx] /= vm;
+    if (vm>0.0001f) {
+        vs[idx] /= vm;
+    } else {
+        vs[idx] = v_adv[idx];
+    }
 
     float wm = wMasses[idx];
-    if (wm>0.0001f) ws[idx] /= wm;
+    if (wm>0.0001f) {
+        ws[idx] /= wm;
+    } else {
+        ws[idx] = w_adv[idx];
+    }
 
     new_us[idx] = us[idx];
     new_vs[idx] = vs[idx] + gravity * dt;
