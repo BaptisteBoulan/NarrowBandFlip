@@ -105,6 +105,9 @@ public:
     // GPU
     void initGPU();
 
+    // GETTERS
+    std::vector<float> getLevelSet();
+
 private:
     float RHO = 1.0f;
     float GRAVITY = -9.81f;

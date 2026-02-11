@@ -539,3 +539,10 @@ glm::vec3 Simulation::sampleVelocity(glm::vec3 pos) {
 
     return glm::vec3(u_val, v_val, w_val);
 }
+
+
+// GETTERS
+std::vector<float> Simulation::getLevelSet() {
+    getDataFromGPU(levelSetSSBO, grid.levelSet); 
+    return grid.levelSet;
+}

@@ -2,10 +2,13 @@
 #include "shader.h"
 #include "camera.h"
 #include "frameRecording/FrameRecorder.h"
+#include "geometry/FluidRenderer.h"
 
 // Global State
-int simRes = 64;
+int simRes = 32;
 Simulation sim(simRes);
+FluidRenderer* fluidRenderer;
+
 GLFWwindow* window;
 GLuint particleVAO, particleVBO;
 GLuint particleShader;
@@ -74,6 +77,8 @@ void initGL() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
 
+    fluidRenderer = new FluidRenderer(simRes, &sim.grid);
+
     sim.initGPU();
 }
 
@@ -125,6 +130,8 @@ void render(bool record = false) {
             sim.solvePressure(dt);
             sim.applyPressure(dt);
             sim.g2p(dt);
+
+            fluidRenderer->update();
         }
 
         // CAMERA MOVEMENTS
@@ -144,25 +151,29 @@ void render(bool record = false) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // PARTICLE DISPLAY
-        glUseProgram(particleShader);
 
         // Uniforms
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 800.0f, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
 
-        glUniformMatrix4fv(glGetUniformLocation(particleShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-        glUniformMatrix4fv(glGetUniformLocation(particleShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(glGetUniformLocation(particleShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(glGetUniformLocation(particleShader, "size"), sim.size);
-        
-        glBindVertexArray(particleVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-        glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
+        // // PARTICLE DISPLAY
+        // glUseProgram(particleShader);
 
-        glPointSize(3.0f);
-        glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
+        // glUniformMatrix4fv(glGetUniformLocation(particleShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        // glUniformMatrix4fv(glGetUniformLocation(particleShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        // glUniformMatrix4fv(glGetUniformLocation(particleShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        // glUniform1i(glGetUniformLocation(particleShader, "size"), sim.size);
+        
+        // glBindVertexArray(particleVAO);
+        // glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
+        // glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
+
+        // glPointSize(3.0f);
+        // glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
+
+        
+        fluidRenderer->draw(view, projection, model);
 
 
         if (record && frameRecorder.isRecording()) {

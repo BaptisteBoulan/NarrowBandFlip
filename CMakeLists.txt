@@ -40,10 +40,15 @@ add_executable(renderze
     src/simulation.h
     src/simulation.cpp
     src/camera.cpp
+
+    src/geometry/FluidRenderer.cpp
     
     src/frameRecording/stb_image_write.h
     src/frameRecording/frameRecorder.h
     src/frameRecording/frameRecorder.cpp
+
+    src/geometry/FluidRenderer.cpp
+    src/geometry/FluidRenderer.h
     
     )
 
