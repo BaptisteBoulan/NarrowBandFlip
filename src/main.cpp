@@ -5,13 +5,11 @@
 #include "geometry/FluidRenderer.h"
 
 // Global State
-int simRes = 32;
+int simRes = 128;
 Simulation sim(simRes);
 FluidRenderer* fluidRenderer;
 
 GLFWwindow* window;
-GLuint particleVAO, particleVBO;
-GLuint particleShader;
 bool paused = true;
 FrameRecorder frameRecorder; 
 
@@ -21,7 +19,7 @@ float mouseX, mouseY;
 float SPAWN_RATE = 0.03f / simRes;
 
 // Camera
-Camera camera(glm::vec3(-0.5f, 0.5f, 1.5f)); 
+Camera camera(glm::vec3(-0.5f, 0.4f, 1.5f)); 
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
@@ -67,27 +65,9 @@ void initGL() {
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_POINT_SPRITE);
 
-    // --- Particle Setup ---
-    glGenVertexArrays(1, &particleVAO);
-    glGenBuffers(1, &particleVBO);
-    glBindVertexArray(particleVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-    // Pre-allocate buffer for maximum particles
-    glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), NULL, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
-
-    fluidRenderer = new FluidRenderer(simRes, &sim.grid);
+    fluidRenderer = new FluidRenderer(simRes, &sim);
 
     sim.initGPU();
-}
-
-void initShaders() {
-    std::vector<std::pair<char*, ShaderType>> particleShaders = {
-        {"shaders/particleVertex.glsl", ShaderType::VERTEX},
-        {"shaders/particleFragment.glsl", ShaderType::FRAGMENT},
-    };
-    particleShader = createShaderProgram(particleShaders);
 }
 
 void render(bool record = false) {
@@ -156,25 +136,8 @@ void render(bool record = false) {
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 800.0f, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
-
-        // // PARTICLE DISPLAY
-        // glUseProgram(particleShader);
-
-        // glUniformMatrix4fv(glGetUniformLocation(particleShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-        // glUniformMatrix4fv(glGetUniformLocation(particleShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        // glUniformMatrix4fv(glGetUniformLocation(particleShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
-        // glUniform1i(glGetUniformLocation(particleShader, "size"), sim.size);
-        
-        // glBindVertexArray(particleVAO);
-        // glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-        // glBufferData(GL_ARRAY_BUFFER, sim.particles.size() * sizeof(Particle), sim.particles.data(), GL_DYNAMIC_DRAW);
-
-        // glPointSize(3.0f);
-        // glDrawArrays(GL_POINTS, 0, (GLsizei)sim.particles.size());
-
         
         fluidRenderer->draw(view, projection, model);
-
 
         if (record && frameRecorder.isRecording()) {
             int width, height;
@@ -190,8 +153,7 @@ void render(bool record = false) {
 
 int main() {
     initGL();
-    initShaders();
-    render(false);
+    render(true);
     glfwTerminate();
     return 0;
 }

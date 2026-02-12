@@ -1,14 +1,15 @@
-#version 430 core
-
-layout(local_size_x = 256) in;
+#version 450 core
 
 struct Particle {
     vec4 pos;
     vec4 vel;
 };
 
-layout(std430, binding = 0) buffer ParticleBuffer { Particle particles[]; };
-layout(std430, binding = 16) coherent buffer ParticlesLevelSet { int particlesLevelSet[]; };
+layout (local_size_x = 256) in;
+
+layout (std430, binding = 0) readonly buffer ParticlesBuffer { Particle[] particles; };
+layout (std430, binding = 25) coherent buffer DensityBuffer { int[] densities; };
+
 
 uniform int size;
 uniform int numParticles;
@@ -40,12 +41,16 @@ void main() {
                 vec3 cellCenter = (vec3(neighbor) + 0.5) / float(size);
 
                 float dist = distance(pPos, cellCenter);
-                float radius = 1.0f / size; // Particle radius
-                float signedDist = radius - dist; // We inverse caus we want a negative distance inside the fluid
+                float density = max(0.0, 1.0 - dist * size);
+                density = density * density * (3.0 - 2.0 * density);
 
-                // Atomic Min
-                int intVal = int(signedDist * 1000000.0);
-                atomicMax(particlesLevelSet[gridIdx(neighbor.x, neighbor.y, neighbor.z)], intVal);
+
+
+                // Atomic add
+                int intVal = int(density * 1000000.0);
+                atomicAdd(densities[gridIdx(neighbor.x, neighbor.y, neighbor.z)], intVal);
+                
+                // densities[gridIdx(neighbor.x, neighbor.y, neighbor.z)] += intVal;
             }
         }
     }

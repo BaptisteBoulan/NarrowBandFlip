@@ -1,7 +1,7 @@
 #include "FluidRenderer.h"
 #include "../config.h"
 
-FluidRenderer::FluidRenderer(int size, Grid* grid) : size(size), grid(grid) {
+FluidRenderer::FluidRenderer(int size, Simulation* sim) : size(size), sim(sim) {
     std::vector<std::pair<char*, ShaderType>> shaderFiles = {
         {"shaders/rasterVertex.glsl", ShaderType::VERTEX},
         {"shaders/rasterFragment.glsl", ShaderType::FRAGMENT}
@@ -34,12 +34,9 @@ FluidRenderer::~FluidRenderer() {
 
 float FluidRenderer::sampleLevelSet(int x, int y, int z) {
     if (x < 0 || x >= size || y < 0 || y >= size || z < 0 || z >= size) return 100.0f; // Outside
-    return grid->levelSet[z * size * size + y * size + x];
-}
-
-CellType FluidRenderer::sampleCellType (int x, int y, int z) {
-    if (x < 0 || x >= size || y < 0 || y >= size || z < 0 || z >= size) return CellType::SOLID; // Outside
-    return grid->cellType[z * size * size + y * size + x];
+    if (sim->grid.levelSet[z * size * size + y * size + x] > 4.0f / size) return 1.0f;
+    int level = sim->density[z * size * size + y * size + x];
+    return level / 1000000.0f;
 }
 
 float FluidRenderer::interpolateLevelSet(glm::vec3 pos) {
@@ -92,6 +89,7 @@ glm::vec3 FluidRenderer::getVertex(int edgeIndex, int x, int y, int z) {
     float t = 0.5f;
     if (std::abs(val1 - val2) > 1e-5) {
         t = val1 / (val1 - val2);
+        t = std::min(1.0f, std::max(0.0f, t));
     }
     
     glm::vec3 interpPos = p1 + t * (p2 - p1);
@@ -99,20 +97,18 @@ glm::vec3 FluidRenderer::getVertex(int edgeIndex, int x, int y, int z) {
 }
 
 void FluidRenderer::update() {
+
     vertices.clear();
     indices.clear();
     
     int indexCounter = 0;
 
-    float threshold = 1.0f / size;
+    float threshold = 0.1f;
 
-    // Iterate over all cells (excluding boundary to avoid array out of bounds with +1)
     for (int k = 0; k < size - 1; ++k) {
         for (int j = 0; j < size - 1; ++j) {
             for (int i = 0; i < size - 1; ++i) {
 
-                if (sampleLevelSet(i, j, k) > 4.0f / size && sampleLevelSet(i + 1, j + 1, k + 1) > 4.0f / size) continue;
-                if (sampleCellType(i, j, k) != CellType::FLUID) continue;
                 
                 int cubeIndex = 0;
                 if (sampleLevelSet(i + 0, j + 0, k + 0) < threshold) cubeIndex |= 1;
@@ -123,8 +119,6 @@ void FluidRenderer::update() {
                 if (sampleLevelSet(i + 1, j + 0, k + 1) < threshold) cubeIndex |= 32;
                 if (sampleLevelSet(i + 0, j + 1, k + 1) < threshold) cubeIndex |= 64;
                 if (sampleLevelSet(i + 1, j + 1, k + 1) < threshold) cubeIndex |= 128; 
-
-                // if (sampleLevelSet(i + 0, j + 0, k + 0) != 0) std::cout<<sampleLevelSet(i + 0, j + 0, k + 0)<<std::endl;
 
 
                 if (TriangleTable[cubeIndex][0] == -1) continue;

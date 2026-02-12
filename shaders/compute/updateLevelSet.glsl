@@ -25,7 +25,7 @@ void main() {
 
     float phi_final = 0.0;
     if (currentCellType == 0) { // SOLID
-        phi_final = 2.0;
+        phi_final = -2.0;
     }
     if (currentCellType == 1) { // AIR
         phi_final = pLS;

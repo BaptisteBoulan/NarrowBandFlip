@@ -4,11 +4,11 @@
 #include "table.h"
 #include "../config.h"
 #include "../shader.h"
-#include "../grid.h"
+#include "../simulation.h"
 
 class FluidRenderer {
 public:
-    FluidRenderer(int size, Grid* grid);
+    FluidRenderer(int size, Simulation* sim);
     ~FluidRenderer();
 
     void update();
@@ -19,7 +19,7 @@ private:
     GLuint VAO, VBO, EBO;
     GLuint shaderProg;
 
-    Grid* grid;
+    Simulation* sim;
     
     std::vector<float> vertices; // pos(3) + normal(3)
     std::vector<unsigned int> indices;

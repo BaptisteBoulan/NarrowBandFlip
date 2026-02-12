@@ -38,13 +38,21 @@ public:
                 }
             }
         }
+
+        for (int i = 2 * size/5; i < 3 * size/5; i++) {
+            for (int j = 0; j < size; j++) {
+                for (int k = 2 * size/5; k < 3 * size/5; k++) {
+                    grid.cellType[grid.gridIdx(i, j, k)] = CellType::SOLID;
+                }
+            }
+        }
         
         // Init particles
         glm::vec3 p1(0.6f, 0.2f, 0.1f);
         glm::vec3 p2(0.9f, 0.8f, 0.9f);
         glm::vec3 boxSize = p2 - p1;
         glm::vec3 boxCenter = 0.5f * (p1 + p2);
-        float spacing = 0.2f / size;
+        float spacing = 0.3f / size;
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
@@ -76,6 +84,7 @@ public:
         Ad.assign(grid.total_cells, 0.0f);
         direction.assign(grid.total_cells, 0.0f);
         residual.assign(grid.total_cells, 0.0f);
+        density.assign(grid.total_cells, 0);
 
         params = SolverParams({0,0,0,0});
         NUM_PARTICLES_GROUP = ((int)particles.size() + 255) / 256;
@@ -106,7 +115,7 @@ public:
     void initGPU();
 
     // GETTERS
-    std::vector<float> getLevelSet();
+    std::vector<int> density;
 
 private:
     float RHO = 1.0f;
@@ -118,7 +127,8 @@ private:
     int NUM_GROUP_2D;
     int NUM_GROUP_3D;
 
-     
+    
+    // SSBOs
     GLuint particleSSBO;
     GLuint uSSBO, vSSBO, wSSBO;
     GLuint uMassSSBO, vMassSSBO, wMassSSBO;
@@ -127,7 +137,11 @@ private:
     GLuint cellTypeSSBO, divSSBO, pressureSSBO;
     GLuint levelSetSSBO, newLevelSetSSBO, particlesLevelSetSSBO, finalLevelSetSSBO;
     GLuint adSSBO, directionSSBO, dAdSSBO, residualSSBO, paramsSSBO;
-    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, updateLevelSetProg, redistanceProg, particleLevelSetProg, advectGridProg;
+    GLuint densitySSBO;
+
+    // COMPUTE SHADERS
+    GLuint p2gProg, g2pProg, applyAProg, normalizeProg, classifyCellsProg, resetCellTypesProg, computeDivProg, applyPressureProg, dotProductProg, moveAlphaProg, moveBetaProg, transitionProg, updateLevelSetProg, redistanceProg, particleLevelSetProg, advectGridProg, computeDensityProg;
+    
     std::vector<float> Ad, direction, residual;
     SolverParams params;
 

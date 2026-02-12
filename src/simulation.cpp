@@ -30,7 +30,6 @@ void Simulation::p2g(float dt) {
     dispatchCompute(classifyCellsProg, NUM_PARTICLES_GROUP);
     getDataFromGPU(cellTypeSSBO, grid.cellType);
 
-    // Simplified level set initialization: 0 for AIR/SOLID, 1 for FLUID
     clearBufferInt(particlesLevelSetSSBO, 0);
     dispatchCompute(particleLevelSetProg, NUM_PARTICLES_GROUP);
     dispatchCompute(updateLevelSetProg, NUM_GROUP_3D, NUM_GROUP_3D, NUM_GROUP_3D);
@@ -95,7 +94,7 @@ void Simulation::solvePressure(float dt) {
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4*sizeof(float), &params);
 
     float epsilon = 1e-6f;
-    int maxIter = 100;
+    int maxIter = 200;
 
     for (int k = 0; k < maxIter; k++) {
         // Compute Ad        
@@ -138,6 +137,10 @@ void Simulation::g2p(float dt) {
 
     dispatchCompute(g2pProg, NUM_PARTICLES_GROUP);
     getDataFromGPU(particleSSBO, particles);
+
+    clearBufferInt(densitySSBO, 0);
+    dispatchCompute(computeDensityProg, NUM_PARTICLES_GROUP);
+    getDataFromGPU(densitySSBO, density);
 }
 
 
@@ -209,10 +212,13 @@ void Simulation::initGPU() {
     initBuffer(23, vAdvSSBO, grid.v_adv);
     initBuffer(24, wAdvSSBO, grid.w_adv);
 
+    initBuffer(25, densitySSBO, density);
+
     glGenBuffers(1, &paramsSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 4*sizeof(float), &params, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 21, paramsSSBO);
+    
 
     // Compile shaders
     advectGridProg          = createShaderProgram({{"shaders/compute/advectGrid.glsl",                  ShaderType::COMPUTE}});
@@ -222,7 +228,7 @@ void Simulation::initGPU() {
     classifyCellsProg       = createShaderProgram({{"shaders/compute/classifyCells.glsl",               ShaderType::COMPUTE}});
     updateLevelSetProg      = createShaderProgram({{"shaders/compute/updateLevelSet.glsl",              ShaderType::COMPUTE}});
     redistanceProg          = createShaderProgram({{"shaders/compute/redistance.glsl",                  ShaderType::COMPUTE}});
-    particleLevelSetProg         = createShaderProgram({{"shaders/compute/particleLevelSet.glsl",            ShaderType::COMPUTE}});
+    particleLevelSetProg    = createShaderProgram({{"shaders/compute/particleLevelSet.glsl",            ShaderType::COMPUTE}});
 
     computeDivProg          = createShaderProgram({{"shaders/compute/computeDiv.glsl",                  ShaderType::COMPUTE}});
 
@@ -235,6 +241,8 @@ void Simulation::initGPU() {
 
     applyPressureProg       = createShaderProgram({{"shaders/compute/applyPressure.glsl",               ShaderType::COMPUTE}});
     g2pProg                 = createShaderProgram({{"shaders/compute/g2p.glsl",                         ShaderType::COMPUTE}});
+
+    computeDensityProg      = createShaderProgram({{"shaders/compute/computeDensity.glsl",              ShaderType::COMPUTE}});
 
 
     // Init unifrom values
@@ -294,10 +302,15 @@ void Simulation::initGPU() {
     glUniform1i(glGetUniformLocation(advectGridProg, "size"), size);
     glUniform1f(glGetUniformLocation(advectGridProg, "h"), h);
 
+    glUseProgram(computeDensityProg);
+    glUniform1i(glGetUniformLocation(computeDensityProg, "size"), size);
+
+
     sendDataToGPU(cellTypeSSBO, grid.cellType);
     sendDataToGPU(particleSSBO, particles);
     sendDataToGPU(levelSetSSBO, grid.levelSet);
     sendDataToGPU(levelSetSSBO, grid.particlesLevelSet);
+    sendDataToGPU(densitySSBO, density);
 }
 
 
@@ -333,6 +346,9 @@ void Simulation::updateParticleBuffer() {
     
     glUseProgram(particleLevelSetProg);
     glUniform1i(glGetUniformLocation(particleLevelSetProg, "numParticles"), (int)particles.size());
+    
+    glUseProgram(computeDensityProg);
+    glUniform1i(glGetUniformLocation(computeDensityProg, "numParticles"), (int)particles.size());
 }
 
 void Simulation::dispatchCompute(GLuint prog, int numX, int numY, int numZ) {
@@ -365,12 +381,11 @@ void Simulation::cullAndResample() {
     std::vector<Particle> keptParticles;
     keptParticles.reserve(particles.size());
 
-    float threshold = 7.0f * h;
+    float threshold = 5.0f * h;
     
     std::vector<int> cellCounts(grid.total_cells, 0);
 
     for (const auto& p : particles) {
-        // float phi = sampleLevelSet(glm::vec3(p.pos));
         int i = (int)(p.pos.x * size);
         int j = (int)(p.pos.y * size);
         int k = (int)(p.pos.z * size);
@@ -538,11 +553,4 @@ glm::vec3 Simulation::sampleVelocity(glm::vec3 pos) {
     }
 
     return glm::vec3(u_val, v_val, w_val);
-}
-
-
-// GETTERS
-std::vector<float> Simulation::getLevelSet() {
-    getDataFromGPU(levelSetSSBO, grid.levelSet); 
-    return grid.levelSet;
 }

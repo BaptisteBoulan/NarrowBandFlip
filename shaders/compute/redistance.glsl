@@ -4,14 +4,11 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 layout(std430, binding = 10) readonly buffer CellTypeBuffer { uint cellType[]; };
 layout(std430, binding = 17) readonly buffer LevelSetIn { float levelSetIn[]; };
 layout(std430, binding = 14) writeonly buffer LevelSetOut { float levelSetOut[]; };
+layout(std430, binding = 16) readonly buffer ParticlesLevelSet { int particlesLevelSet[]; };
 
 uniform int size;
 
 int getIdx(ivec3 pos) {
-    if (any(lessThan(pos, ivec3(0))) || any(greaterThanEqual(pos, ivec3(size)))) {
-        // Out of bounds indices are invalid.
-        return -1;
-    }
     return (pos.z * size * size) + (pos.y * size) + pos.x;
 }
 
@@ -23,6 +20,7 @@ void main() {
     
     // Only process FLUID cells (Type 2). AIR (1) and SOLID (0) stay at 0.0 distance.
     if (cellType[center_idx] != 2) {
+        levelSetOut[center_idx] = levelSetIn[center_idx];
         return;
     }
 
