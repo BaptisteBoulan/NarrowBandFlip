@@ -8,7 +8,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <vector>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+
+#define M_PI 3.1415265

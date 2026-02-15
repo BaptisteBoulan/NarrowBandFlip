@@ -45,7 +45,7 @@ GLuint compileShader(GLenum type, const char* path) {
     if (!success) {
         char errorLog[1024]; //size of the error log
         glGetShaderInfoLog(shader, 1024, NULL, errorLog);
-        std::cout<<"Shader Module error"<< errorLog << std::endl;
+        std::cout<<"Shader Module error"<< errorLog <<" in module: " << path << std::endl;
     }
 
     return shader;
@@ -68,7 +68,7 @@ GLuint createShaderProgram(const std::vector<std::pair<char*, ShaderType>> shade
     if (!success) {
         char errorLog[1024]; //size of the error log
         glGetProgramInfoLog(program, 1024, NULL, errorLog);
-        std::cout<<"Shader linking error: "<< errorLog << std::endl;
+        std::cout<<"Shader linking error: "<< errorLog  <<" in shader: " << shaders[0].first << std::endl;
     }
 
     return program;

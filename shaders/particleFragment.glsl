@@ -1,10 +1,50 @@
 #version 450 core
 
-uniform float color;
+layout(std430, binding = 10) buffer cellTypeBuffer { int cellTypes[]; };
+layout(std430, binding = 13) buffer LevelSetBuffer { float levelSet[]; };
+
+in vec3 vPos;
+in float vPointSize;
+
+uniform int size;
 
 out vec4 FragColor;
 
 void main() {
-    if (color < 0.5) FragColor = vec4(0.7, 0.9, 1.0, 1.0);
-    else FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    
+    vec2 coord = gl_PointCoord - vec2(0.5);
+    float dist = dot(coord, coord);
+    if (dist > 0.25) {
+        discard;
+    }
+
+    vec3 pos = vPos * vec3(float(size));
+    ivec3 iPos = ivec3(floor(pos));
+    iPos = clamp(iPos, ivec3(0), ivec3(size - 1));
+
+    float l = levelSet[iPos.z * size * size + iPos.y * size + iPos.x];
+
+    vec3 foamColor = vec3(1.0);
+    vec3 waterColor = vec3(0.1, 0.7, 1.0);
+    vec3 deepWaterColor = vec3(0.0, 0.1, 0.4);
+
+    float foamThreshold = 0.03;
+    float waterThreshold = 0.1;
+    float deepThreshold = 0.3;
+    vec3 finalColor;
+
+    if (l < foamThreshold) {
+        finalColor = vec3(1.0);
+    } else if (l < waterThreshold) {
+        float t = smoothstep(foamThreshold, waterThreshold, l);
+        finalColor = mix(foamColor, waterColor, t);
+    } else if (l< deepThreshold) {
+        float t = smoothstep(waterThreshold, deepThreshold, l);
+        finalColor = mix(waterColor, deepWaterColor, t);
+    } else finalColor = deepWaterColor;
+
+    // finalColor = vec3((1-4*l)*0.5, (1-4*l)*0.8, (1-4*l));
+
+
+    FragColor = vec4(finalColor, 1.0);
 }
