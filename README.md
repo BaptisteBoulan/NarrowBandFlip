@@ -1,6 +1,6 @@
 # Narrow Band FLIP for Liquid Simulations
 
-This repository contains the implementation and optimization of the **Narrow Band FLIP (NB-FLIP)** algorithm for liquid simulations, as described in the report ["Narrow Band FLIP for Liquid Simulations: Implementation and Optimization"](Narrow%20Band%20FLIP%20for%20Liquid%20Simulations.pdf) by Baptiste Boulan.
+This repository contains the implementation and optimization of the **Narrow Band FLIP (NB-FLIP)** algorithm for liquid simulations, as described in the report ["Narrow Band FLIP for Liquid Simulations: Implementation and Optimization"](Report_Narrow_Band_For_Liquid_Simulation_Baptiste_Boulan.pdf) by Baptiste Boulan, inspired by the paper ["Narrow Band FLIP for Liquid Simulations"](Narrow_Band_FLIP_for_Liquid_Simulationsx.pdf) by Florian Ferstl.
 
 The project focuses on reducing the computational cost of traditional FLIP simulations by maintaining particles only within a narrow band around the liquid surface, while representing the interior on a regular Eulerian grid. The implementation scales from a 2D CPU prototype to a fully 3D GPU-accelerated simulation, capable of handling up to 18 million particles.
 
