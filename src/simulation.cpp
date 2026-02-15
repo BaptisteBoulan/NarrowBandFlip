@@ -381,7 +381,7 @@ void Simulation::cullAndResample() {
     std::vector<Particle> keptParticles;
     keptParticles.reserve(particles.size());
 
-    float threshold = 5.0f * h;
+    float threshold = 8.0f * h;
     
     std::vector<int> cellCounts(grid.total_cells, 0);
 
@@ -416,7 +416,7 @@ void Simulation::cullAndResample() {
                 int idx = grid.gridIdx(i, j, k);
                 float phi = grid.levelSet[idx]; // Cell center value
 
-                if (phi > threshold - 2*h && phi < threshold) {
+                if (phi > threshold - 3*h && phi < threshold) {
                     int count = cellCounts[idx];
                     if (count < 20) {
                         int toAdd = 20 - count;

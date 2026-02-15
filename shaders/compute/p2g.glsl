@@ -19,6 +19,8 @@ layout(std430, binding = 4) coherent buffer UMassBuffer { uint uMasses[]; };
 layout(std430, binding = 5) coherent buffer VMassBuffer { uint vMasses[]; };
 layout(std430, binding = 6) coherent buffer WMassBuffer { uint wMasses[]; };
 
+layout(std430, binding = 17) readonly buffer LevelSetBuffer { float levelSet[]; };
+
 uniform int size;
 uniform int numParticles;
 
@@ -52,6 +54,7 @@ void atomicAddFloat(uint index, float val, int bufferType) {
 int getUIdx(int i, int j, int k) { return k * size * (size + 1) + j * (size + 1) + i; }
 int getVIdx(int i, int j, int k) { return k * (size + 1) * size + j * size + i; }
 int getWIdx(int i, int j, int k) { return k * size * size + j * size + i; }
+int getGridIdx(int i, int j, int k) { return k * size * size + j * size + i; }
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
@@ -60,8 +63,13 @@ void main() {
     Particle p = particles[idx];
     vec3 pPos = p.pos.xyz * float(size);
 
+    ivec3 cellIdx = ivec3(floor(p.pos.xyz * float(size)));
+    if (cellIdx.x >= 0 && cellIdx.x < size && cellIdx.y >= 0 && cellIdx.y < size && cellIdx.z >= 0 && cellIdx.z < size) {
+        float phi = levelSet[getGridIdx(cellIdx.x, cellIdx.y, cellIdx.z)];
+        if (phi > 7.0 / float(size)) return;
+    }
+
     // --- Transfer U (X-velocity) ---
-    // Staggered: centered at (i, j+0.5, k+0.5)
     vec3 uPos = vec3(pPos.x, pPos.y - 0.5, pPos.z - 0.5);
     ivec3 ui0 = ivec3(floor(uPos));
     vec3 uf = uPos - vec3(ui0);

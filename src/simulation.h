@@ -39,20 +39,20 @@ public:
             }
         }
 
-        for (int i = 2 * size/5; i < 3 * size/5; i++) {
-            for (int j = 0; j < size; j++) {
-                for (int k = 2 * size/5; k < 3 * size/5; k++) {
-                    grid.cellType[grid.gridIdx(i, j, k)] = CellType::SOLID;
-                }
-            }
-        }
+        // for (int i = 2 * size/5; i < 3 * size/5; i++) {
+        //     for (int j = 0; j < size; j++) {
+        //         for (int k = 2 * size/5; k < 3 * size/5; k++) {
+        //             grid.cellType[grid.gridIdx(i, j, k)] = CellType::SOLID;
+        //         }
+        //     }
+        // }
         
         // Init particles
         glm::vec3 p1(0.6f, 0.2f, 0.1f);
         glm::vec3 p2(0.9f, 0.8f, 0.9f);
         glm::vec3 boxSize = p2 - p1;
         glm::vec3 boxCenter = 0.5f * (p1 + p2);
-        float spacing = 0.3f / size;
+        float spacing = 0.25f / size;
 
         for(float x = p1.x; x < p2.x; x += spacing) {
             for (float y = p1.y; y < p2.y; y += spacing) {
