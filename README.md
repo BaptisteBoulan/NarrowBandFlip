@@ -17,7 +17,7 @@ The project focuses on reducing the computational cost of traditional FLIP simul
 ├── python/                 # Python scripts for video reconstruction
 ├── shaders/                # GLSL shaders for GPU rendering
 ├── src/                    # Main C++ source code
-├── videos/                 # Simulation videos (ignored by git)
+├── videos/                 # Simulation videos
 ├── .gitignore
 ├── CMakeLists.txt          # CMake configuration
 ├── Report_Narrow_Band_For_Liquid_Simulation_Baptiste_Boulan.pdf    # Project report
